@@ -7,7 +7,7 @@ INSTALL_REQUIRES=[
     'WebOb'
 ]
 
-setup(name='fried',
+setup(name='happy',
       version=version,
       description="Collection of disposable web components--an antiframework.",
       long_description="""\
@@ -23,7 +23,7 @@ setup(name='fried',
       zip_safe=True,
       install_requires=INSTALL_REQUIRES,
       tests_require=INSTALL_REQUIRES + ['nose', 'coverage'],
-      test_suite='fried',
+      test_suite='happy',
       entry_points={
           }
       )
