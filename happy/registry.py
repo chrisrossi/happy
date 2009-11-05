@@ -7,7 +7,6 @@ controllers with context types, in order to call view code based on the type
 of a content object. Alternatively, an event system might use a registry to
 register handlers for events.
 """
-import copy
 
 class Registry(object):
     def __init__(self, *axes):
@@ -32,23 +31,22 @@ class Registry(object):
         map_node = self._registry
         keys = map(lambda x: x[0].get_key(x[1]), zip(self.axes, objs))
 
-        return self._lookup(map_node, list(self.axes), copy.copy(keys))
+        return self._lookup(map_node, self.axes, keys)
 
     def _lookup(self, map_node, axes, keys):
         if not keys:
             return getattr(map_node, 'target', None)
 
-        axis, key = axes.pop(0), keys.pop(0)
+        axis, key = axes[0], keys[0]
         if axis.specificity:
             for k in key:
                 if k in map_node:
-                    target = self._lookup(map_node[k],
-                                          copy.copy(axes), copy.copy(keys))
+                    target = self._lookup(map_node[k], axes[1:], keys[1:])
                     if target is not None:
                         return target
 
         elif key in map_node:
-            return self._lookup(map_node[key], axes, keys)
+            return self._lookup(map_node[key], axes[1:], keys[1:])
 
         return None
 
