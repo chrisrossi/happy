@@ -11,10 +11,10 @@ class RoutesTests(unittest.TestCase):
 
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        d.add_route(controller1, '/')
-        d.add_route(controller2, '/foo/:/bar/:')
-        d.add_route(controller2, '/:/:')
-        d.add_route(controller3, '/:/:foo/:bar/happy')
+        d.register(controller1, '/')
+        d.register(controller2, '/foo/:a/bar/:b')
+        d.register(controller2, '/:a/:b')
+        d.register(controller3, '/:a/:foo/:bar/happy')
 
         from webob import Request
         req = Request.blank

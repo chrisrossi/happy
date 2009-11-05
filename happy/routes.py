@@ -1,33 +1,48 @@
-
-class Route(object):
-    def __init__(self, target, path):
-        route = []
-        variable_indices = []
-        for i, element in enumerate(filter(None, path.split('/'))):
-            path_element = _PathElement(element)
-            if path_element.variable:
-                variable_indices.append(i)
-            route.append(path_element)
-
-        self.target = target
-        self.path = path
-        self.route = route
-        self.variable_indices = variable_indices
-
-class _PathElement(object):
-    def __init__(self, element):
-        if element.startswith(':'):
-            self.variable = True
-            self.name = element[1:]
-        else:
-            self.variable = False
-            self.name = element
+"""
+This package provides a fairly simplified implementation of so called "routes"
+based dispatch. This is based loosely on the style of dispatch used by Pylons,
+Ruby on Rails, BFG and others.
+"""
+__all__ = ['RoutesDispatcher']
 
 class RoutesDispatcher(object):
-    def __init__(self):
-        self._map = _MapNode()
+    """
+    The ``RoutesDispatcher`` class provides URL based dispatch based on
+    ``routes`` that are registered on the dispatcher.  Each route is registered
+    to call a single controller.  The call signature of controller is::
 
-    def add_route(self, target, path):
+      controller(request, **kw)
+
+    ``**kw`` is filled in with match elements from the route. A route is added
+    via the ``register`` method::
+
+      from happy.routes import RoutesDispatcher
+      dispatcher = RoutesDispatcher()
+      dispatcher.register(controller, '/foo/:animal')
+
+    The above route matches any two segment path that begins with 'foo'. These
+    urls match::
+
+      /foo/12
+      /foo/cat
+      /foo/horse/
+
+    These urls do not match::
+
+      /bar/foo/12
+      /foo/12/cat
+
+    When matched, the controller for this route will be called with a request
+    object and a single keyword argument for the match element::
+
+      def controller(request, animal):
+          pass
+
+    """
+    def __init__(self):
+        self._map = MapNode()
+
+    def register(self, target, path):
         route = Route(target, path)
         map_node = self._map
         for element in route.route:
@@ -37,7 +52,7 @@ class RoutesDispatcher(object):
                 key = element.name
 
             if not map_node.has_key(key):
-                map_node[key] = _MapNode()
+                map_node[key] = MapNode()
 
             map_node = map_node[key]
 
@@ -49,16 +64,12 @@ class RoutesDispatcher(object):
         if route is None:
             return None
 
-        args = []
-        kwargs = {}
+        args = {}
         for index in route.variable_indices:
             name = route.route[index].name
-            if name:
-                kwargs[name] = elements[index]
-            else:
-                args.append(elements[index])
+            args[name] = elements[index]
 
-        return route, args, kwargs
+        return route, args
 
     def _match(self, map_node, elements):
         if not elements:
@@ -86,8 +97,32 @@ class RoutesDispatcher(object):
             return None
 
         # Call target
-        route, args, kwargs = match
-        return route.target(request, *args, **kwargs)
+        route, args = match
+        return route.target(request, **args)
 
-class _MapNode(dict):
+class Route(object):
+    def __init__(self, target, path):
+        route = []
+        variable_indices = []
+        for i, element in enumerate(filter(None, path.split('/'))):
+            path_element = PathElement(element)
+            if path_element.variable:
+                variable_indices.append(i)
+            route.append(path_element)
+
+        self.target = target
+        self.path = path
+        self.route = route
+        self.variable_indices = variable_indices
+
+class PathElement(object):
+    def __init__(self, element):
+        if element.startswith(':'):
+            self.variable = True
+            self.name = element[1:]
+        else:
+            self.variable = False
+            self.name = element
+
+class MapNode(dict):
     route = None
