@@ -39,7 +39,7 @@ class RoutesDispatcher(object):
 
     """
     def __init__(self):
-        self._map = MapNode()
+        self._map = _MapNode()
 
     def register(self, target, path):
         route = Route(target, path)
@@ -51,7 +51,7 @@ class RoutesDispatcher(object):
                 key = element.name
 
             if not map_node.has_key(key):
-                map_node[key] = MapNode()
+                map_node[key] = _MapNode()
 
             map_node = map_node[key]
 
@@ -104,7 +104,7 @@ class Route(object):
         route = []
         variable_indices = []
         for i, element in enumerate(filter(None, path.split('/'))):
-            path_element = PathElement(element)
+            path_element = _PathElement(element)
             if path_element.variable:
                 variable_indices.append(i)
             route.append(path_element)
@@ -114,7 +114,7 @@ class Route(object):
         self.route = route
         self.variable_indices = variable_indices
 
-class PathElement(object):
+class _PathElement(object):
     def __init__(self, element):
         if element.startswith(':'):
             self.variable = True
@@ -123,5 +123,5 @@ class PathElement(object):
             self.variable = False
             self.name = element
 
-class MapNode(dict):
+class _MapNode(dict):
     route = None
