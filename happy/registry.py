@@ -1,45 +1,13 @@
 """
-Generic notion of registry.
+Generic notion of registry. A registry is used by other components to track
+registrations of components. Fundamentally a registry is just a way to store
+some object with a set of associations and then look up that object later. A
+graph traversal dipatcher, for example, might use a registry to associate
+controllers with context types, in order to call view code based on the type
+of a content object. Alternatively, an event system might use a registry to
+register handlers for events.
 """
 import copy
-
-class IAxis(object):
-    """
-    Class which implement ``IAxis`` define an axis used for registration and
-    lookup in a registry.
-    """
-    specificity = property(
-        doc="""A boolean attribute indicating whether or not this axis supports
-               the notion of specificity.  If ``True``, the keys returned by
-               ``get_key`` for this axis must be iterables yielding individual
-               hashable keys in decreasing order of specificity.  Lookups will
-               be performed on each key in turn until a match is found.  If
-               ``False``, then ``get_key`` is assumed to return a simple
-               hashable key which will be used to perform a single lookup on
-               the axis."""
-    )
-
-    def get_key(self, obj):
-        """
-        Gets key for a given object.  Key is used to perform a registry lookup
-        on this axis.  If axis uses specificity, returns an iterable of
-        individual hashable keys, in decreasing order order of specificy, which
-        are tried in turn until a match is found.  If axis does not use
-        specificity, returns a single hashable key used for a lookup in this
-        axis.
-        """
-
-class MROAxis(object):
-    specificity = True
-
-    def get_key(self, obj):
-        return obj.__class__.mro()
-
-class IdentityAxis(object):
-    specificity = False
-
-    def get_key(self, obj):
-        return obj
 
 class Registry(object):
     def __init__(self, *axes):
@@ -83,6 +51,46 @@ class Registry(object):
             return self._lookup(map_node[key], axes, keys)
 
         return None
+
+class IAxis(object):
+    """
+    Class which implement ``IAxis`` define an axis used for registration and
+    lookup in a registry.
+    """
+    specificity = property(
+        doc="""A boolean attribute indicating whether or not this axis supports
+               the notion of specificity.  If ``True``, the keys returned by
+               ``get_key`` for this axis must be iterables yielding individual
+               hashable keys in decreasing order of specificity.  Lookups will
+               be performed on each key in turn until a match is found.  If
+               ``False``, then ``get_key`` is assumed to return a simple
+               hashable key which will be used to perform a single lookup on
+               the axis."""
+    )
+
+    def get_key(self, obj):
+        """
+        Gets key for a given object.  Key is used to perform a registry lookup
+        on this axis.  If axis uses specificity, returns an iterable of
+        individual hashable keys, in decreasing order order of specificy, which
+        are tried in turn until a match is found.  If axis does not use
+        specificity, returns a single hashable key used for a lookup in this
+        axis.
+        """
+
+class MROAxis(object):
+    specificity = True
+
+    def get_key(self, obj):
+        return obj.__class__.mro()
+
+class IdentityAxis(object):
+    specificity = False
+
+    def get_key(self, obj):
+        return obj
+
+
 
 class _MapNode(dict):
     target = None
