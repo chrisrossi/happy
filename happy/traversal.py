@@ -4,8 +4,8 @@ of an object graph.
 """
 
 from happy.registry import Registry
-from happy.registry import MROAxis
-from happy.registry import IdentityAxis
+from happy.registry import mro_axis
+from happy.registry import identity_axis
 
 def traverse(root, path):
     """
@@ -36,7 +36,7 @@ class TraversalDispatcher(object):
     def __init__(self, root_factory, registry=None):
         self.root_factory = root_factory
         if registry == None:
-            registry = Registry(MROAxis(), IdentityAxis())
+            registry = Registry(mro_axis, identity_axis)
         self.registry = registry
 
     def __call__(self, request):

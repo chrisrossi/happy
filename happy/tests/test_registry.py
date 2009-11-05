@@ -3,8 +3,8 @@ import unittest
 class RegistryTests(unittest.TestCase):
     def test_one_axis_no_specificity(self):
         from happy.registry import Registry
-        from happy.registry import IdentityAxis
-        registry = Registry(IdentityAxis())
+        from happy.registry import identity_axis
+        registry = Registry(identity_axis)
         a = object()
         b = object()
         registry.register(a)
@@ -16,9 +16,9 @@ class RegistryTests(unittest.TestCase):
 
     def test_two_axes(self):
         from happy.registry import Registry
-        from happy.registry import IdentityAxis
-        from happy.registry import MROAxis
-        registry = Registry(MROAxis(), IdentityAxis())
+        from happy.registry import identity_axis
+        from happy.registry import mro_axis
+        registry = Registry(mro_axis, identity_axis)
 
         target1 = Target('one')
         registry.register(target1, object)
@@ -44,15 +44,15 @@ class RegistryTests(unittest.TestCase):
 
     def test_register_too_many_keys(self):
         from happy.registry import Registry
-        from happy.registry import IdentityAxis
-        registry = Registry(IdentityAxis)
+        from happy.registry import identity_axis
+        registry = Registry(identity_axis)
         self.assertRaises(ValueError, registry.register, object(),
                           'one', 'two')
 
     def test_lookup_too_many_keys(self):
         from happy.registry import Registry
-        from happy.registry import IdentityAxis
-        registry = Registry(IdentityAxis)
+        from happy.registry import identity_axis
+        registry = Registry(identity_axis)
         self.assertRaises(ValueError, registry.lookup, 'one', 'two')
 
 class DummyA(object):

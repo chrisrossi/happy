@@ -6,9 +6,84 @@ graph traversal dipatcher, for example, might use a registry to associate
 controllers with context types, in order to call view code based on the type
 of a content object. Alternatively, an event system might use a registry to
 register handlers for events.
+
+An object is registered by means of axes, where an axis is, essentially, a key
+for look up. A registry must be initialized with one or more axes. An axis is
+a callable which accepts an object as an argument and returns a key to be used
+as a lookup key for that axis. The simplest axis would be the identity axis,
+which simply returns the object itself::
+
+    identity_axis = lambda obj: obj
+
+The returned value must be hashable, as it is used in a dictionary look up.
+An axis may, optionally, have an attribute, ``specificity``, which, if
+``True``, implies that the return value will, rather than a single value,
+be a list of hashable key values in order of most specific to least
+specific.  The notion of specificity is somewhat artificial and context
+dependent, but allows the creation of axes that can perform lookups based
+on an inheritance chain.  An example is an axis for class MRO (Method
+Resolution Order)::
+
+    class MROAxis(object):
+        specificity = True
+
+        def __call__(self, obj):
+            return type(obj).mro()
+
+Suppose the following classes::
+
+    class C(object):
+       pass
+
+    class D(C):
+        pass
+
+    class E(C):
+        pass
+
+Using an MRO axis, you could register a target for C, which would match
+instances of C, D, or E.  If you then made a more specific registration by
+registering a different target for D, then instances of D would then start
+getting back the more specific target, whereas instances of C or E would still
+get the target registered for C.
+
+Both an identity axis and an MRO axis are available for import from this
+package::
+
+    from happy.registry import identity_axis
+    from happy.registry import mro_axis
+
+A registry is instantiated by passing the axes to use as arguments::
+
+    from happy.registry import Registry
+
+    registry = Registry(mro_axis, identity_axis)
+
+The ``register`` method is used to add targets to the registry::
+
+    registry.register(target1, C)
+    registry.register(target2, C, 'kittens')
+    registry.register(target3, D)
+
+The first argument is the target to return from a lookup.  The next arguments
+correspond to the axes used to instantiate the registry.  The ``lookup`` method
+is then used to retrieve objects from the registry:
+
+    foo = C()
+    target1 = registry.lookup(foo)
+    target2 = registry.lookup(foo, 'kittens')
+    bar = D()
+    target3 = registry.lookup(bar)
+    target2 = registry.lookup(foo, 'kittens')
+
+Lookups only match registrations on the same number of axes as the lookup.
+Hence, the fourth lookup above returns target2 and not target3.
 """
 
 class Registry(object):
+    """
+    Implements registry.  See module level documentation.
+    """
     def __init__(self, *axes):
         self._registry = _MapNode()
         self.axes = axes
@@ -29,7 +104,7 @@ class Registry(object):
             raise ValueError("Can't look up more keys than there are axes.")
 
         map_node = self._registry
-        keys = map(lambda x: x[0].get_key(x[1]), zip(self.axes, objs))
+        keys = map(lambda x: x[0](x[1]), zip(self.axes, objs))
 
         return self._lookup(map_node, self.axes, keys)
 
@@ -38,7 +113,7 @@ class Registry(object):
             return getattr(map_node, 'target', None)
 
         axis, key = axes[0], keys[0]
-        if axis.specificity:
+        if getattr(axis, 'specificity', False):
             for k in key:
                 if k in map_node:
                     target = self._lookup(map_node[k], axes[1:], keys[1:])
@@ -50,45 +125,17 @@ class Registry(object):
 
         return None
 
-class IAxis(object):
-    """
-    Class which implement ``IAxis`` define an axis used for registration and
-    lookup in a registry.
-    """
-    specificity = property(
-        doc="""A boolean attribute indicating whether or not this axis supports
-               the notion of specificity.  If ``True``, the keys returned by
-               ``get_key`` for this axis must be iterables yielding individual
-               hashable keys in decreasing order of specificity.  Lookups will
-               be performed on each key in turn until a match is found.  If
-               ``False``, then ``get_key`` is assumed to return a simple
-               hashable key which will be used to perform a single lookup on
-               the axis."""
-    )
 
-    def get_key(self, obj):
-        """
-        Gets key for a given object.  Key is used to perform a registry lookup
-        on this axis.  If axis uses specificity, returns an iterable of
-        individual hashable keys, in decreasing order order of specificy, which
-        are tried in turn until a match is found.  If axis does not use
-        specificity, returns a single hashable key used for a lookup in this
-        axis.
-        """
+class _MapNode(dict):
+    target = None
+
 
 class MROAxis(object):
     specificity = True
 
-    def get_key(self, obj):
-        return obj.__class__.mro()
-
-class IdentityAxis(object):
-    specificity = False
-
-    def get_key(self, obj):
-        return obj
+    def __call__(self, obj):
+        return type(obj).mro()
 
 
-
-class _MapNode(dict):
-    target = None
+mro_axis = MROAxis()
+identity_axis = lambda x: x
