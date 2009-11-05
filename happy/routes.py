@@ -3,7 +3,6 @@ This package provides a fairly simplified implementation of so called "routes"
 based dispatch. This is based loosely on the style of dispatch used by Pylons,
 Ruby on Rails, BFG and others.
 """
-__all__ = ['RoutesDispatcher']
 
 class RoutesDispatcher(object):
     """
