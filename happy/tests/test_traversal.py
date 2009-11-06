@@ -28,27 +28,23 @@ class TraversalDispatcherTests(unittest.TestCase):
         from happy.traversal import TraversalDispatcher
         dispatcher = TraversalDispatcher(root_factory)
         calls = []
-        def view(context, request):
-            calls.append((context, request))
-        registry = dispatcher.registry
-        registry.register(view, DummyModel)
+        def view(request, context):
+            calls.append((request, context))
+        dispatcher.register(view, DummyModel)
         from webob import Request
         request = Request.blank('/')
         dispatcher(request)
-        self.assertEqual(calls[0], (root, request))
+        self.assertEqual(calls[0], (request, root))
 
     def test_named_view(self):
         root = DummyModel()
         root_factory = lambda request: root
         from happy.traversal import TraversalDispatcher
         dispatcher = TraversalDispatcher(root_factory)
-        calls = []
-        def view(context, request):
-            calls.append((context, request))
+        def view(request, context):
             return 'Hello'
 
-        registry = dispatcher.registry
-        registry.register(view, DummyModel, 'hello')
+        dispatcher.register(view, DummyModel, 'hello')
         from webob import Request
         response = dispatcher(Request.blank('/'))
         self.assertEqual(response, None)
