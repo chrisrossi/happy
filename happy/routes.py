@@ -160,14 +160,23 @@ class RoutesDispatcher(object):
         if match is None:
             return None
 
-        # Call target
         route, consumed, subpath, args = match
+
+        # Rewrite script_name and path_name
         request = self.Request(request.environ.copy())
         script = request.script_name.split('/')
         request.script_name = '/'.join(script + consumed)
-        request.path_info = '/'.join([''] + subpath)
+
+        path_info = '/'.join([''] + subpath)
+        if path.endswith('/') and path_info:
+            path_info += '/'
+        request.path_info = path_info
+
+        # Decorate request
         request.subpath = subpath
         request.match_dict = args
+
+        # Call target
         return route.target(request, **args)
 
     def _wrap_callable(self, controller):

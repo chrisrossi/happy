@@ -74,6 +74,8 @@ class RoutesTests(unittest.TestCase):
                          ('/foo/man', ''))
         self.assertEqual(d(req('/foo/man/choo/man')),
                          ('/foo/man', '/choo/man'))
+        self.assertEqual(d(req('/foo/man/choo/man/')),
+                         ('/foo/man', '/choo/man/'))
 
     def test_instance_callable(self):
         class Controller(object):
