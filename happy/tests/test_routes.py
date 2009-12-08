@@ -51,3 +51,15 @@ class RoutesTests(unittest.TestCase):
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
         self.assertRaises(ValueError, d.register, controller, '/foo/*/bar')
+
+    def test_request_rewrite(self):
+        controller = lambda request: (request.script_name, request.path_info)
+
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        d.register(controller, '/foo/:a/*')
+
+        from webob import Request
+        req = Request.blank
+        self.assertEqual(d(req('/foo/man/choo/man')),
+                         ('/foo/man', '/choo/man'))

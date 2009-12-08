@@ -71,8 +71,31 @@ class RoutesDispatcher(object):
 
     In this case, the path `/foo/goose/one` will be dispatched to controller1
     while `/foo/bar/two` will be dispatched to controller2.
+
+    When calling the target controller for a route, the dispatcher will create
+    new copy of the request object and then rewrite the `script_name` and
+    `path_info` attributes such that the target controller is called as though
+    it were a stand alone application (which it very well could be).  The
+    portion of the url path consumed by the route will be appended to the end
+    of `script_name` and the `subpath` will become the new `path_info`.  The
+    following code illustrates::
+
+      dispatcher.register(controller, '/foo/:animal/*')
+
+      # Let's say our dispatcher is at the root of our site (ie, script_name is
+      # empty) and is then called with a path_info of /foo/cat/tiger/lily
+      def controller(request):
+          assert request.script_name == '/foo/cat'
+          assert request.path_info == '/tigery/lily'
+          return webob.Response("It's a %s" % request.match_dict['animal'])
+
+      request = webob.Request.blank('/foo/cat/tiger/lily')
+      assert request.script_name == ''
+      assert request.path_info == '/foo/cat/tiger/lily'
+
+      dispatcher(request)
     """
-    Request = webob.Request # Request factory is overridable via subclassing
+    Request = webob.Request # Request factory is overridable
 
     def __init__(self):
         self._map = _MapNode()
@@ -95,35 +118,35 @@ class RoutesDispatcher(object):
 
     def match(self, path):
         elements = filter(None, path.split('/'))
-        match = self._match(self._map, elements)
+        match = self._match(self._map, [], elements)
         if match is None:
             return None
 
-        route, subpath = match
+        route, consumed, subpath = match
         args = {}
         for index in route.variable_indices:
             name = route.route[index].name
             args[name] = elements[index]
 
-        return route, args, subpath
+        return route, consumed, subpath, args
 
-    def _match(self, map_node, elements):
-        if not elements:
+    def _match(self, map_node, consumed, subpath):
+        if not subpath:
             if map_node.route is not None:
-                return map_node.route, elements
+                return map_node.route, consumed, subpath
             assert '*' in map_node
-            return map_node['*'].route, elements
+            return map_node['*'].route, consumed, subpath
 
         next_node = None
-        element = elements[0]
+        element = subpath[0]
         next_node = map_node.get(element, None)
         if next_node is None:
             next_node = map_node.get(':', None)
         if next_node is None:
             if '*' in map_node:
-                return map_node['*'].route, elements
+                return map_node['*'].route, consumed, subpath
             return None
-        return self._match(next_node, elements[1:])
+        return self._match(next_node, consumed + [element], subpath[1:])
 
     def __call__(self, request, path=None):
         # Allow path to be called in, in case we don't want to start matching
@@ -138,8 +161,11 @@ class RoutesDispatcher(object):
             return None
 
         # Call target
-        route, args, subpath = match
+        route, consumed, subpath, args = match
         request = self.Request(request.environ.copy())
+        script = request.script_name.split('/')
+        request.script_name = '/'.join(script + consumed)
+        request.path_info = '/'.join([''] + subpath)
         request.subpath = subpath
         request.match_dict = args
         return route.target(request, **args)
