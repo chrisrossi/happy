@@ -32,6 +32,9 @@ class RoutesTests(unittest.TestCase):
         def controller2(request):
             return 'Two', request.match_dict, request.subpath
 
+        def controller3(request):
+            return 'Three', request.match_dict, request.subpath
+
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
         d.register(controller1, '/foo/:a/*')
@@ -45,6 +48,12 @@ class RoutesTests(unittest.TestCase):
                          ('Two', {}, []))
         self.assertEqual(d(req('/foo/bar/chew/toy')),
                          ('Two', {}, ['chew', 'toy']))
+
+        d.register(controller3, '/foo/bar/')
+        self.assertEqual(d(req('/foo/bar/chew/toy')),
+                         ('Two', {}, ['chew', 'toy']))
+        self.assertEqual(d(req('/foo/bar/')),
+                         ('Three', {}, []))
 
     def test_bad_wildcard(self):
         controller = lambda request: 'foo'
