@@ -74,3 +74,17 @@ class RoutesTests(unittest.TestCase):
                          ('/foo/man', ''))
         self.assertEqual(d(req('/foo/man/choo/man')),
                          ('/foo/man', '/choo/man'))
+
+    def test_instance_callable(self):
+        class Controller(object):
+            def __call__(self, request):
+                return 'Hello'
+
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        d.register(Controller(), '/')
+
+        from webob import Request
+        self.assertEqual(d(Request.blank('/')), 'Hello')
+
+

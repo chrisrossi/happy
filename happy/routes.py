@@ -170,9 +170,14 @@ class RoutesDispatcher(object):
         request.match_dict = args
         return route.target(request, **args)
 
-    def _wrap_callable(self, func):
+    def _wrap_callable(self, controller):
         def request_only_signature(request, **args):
-            return func(request)
+            return controller(request)
+
+        if inspect.isfunction(controller):
+            func = controller
+        else:
+            func = controller.__call__
 
         args, varargs, keywords, defaults = inspect.getargspec(func)
         if args == ['request'] and not(varargs or keywords or defaults):
