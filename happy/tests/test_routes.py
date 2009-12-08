@@ -24,3 +24,30 @@ class RoutesTests(unittest.TestCase):
         self.assertEqual(d(req('/lily/barf/pi/happy')),
                          ['Three', 'lily', 'barf', 'pi'])
         self.assertEqual(d(req('/'), '/foo/bar/none'), None)
+
+    def test_wildcard(self):
+        def controller1(request):
+            return 'One', request.match_dict, request.subpath
+
+        def controller2(request):
+            return 'Two', request.match_dict, request.subpath
+
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        d.register(controller1, '/foo/:a/*')
+        d.register(controller2, '/foo/bar/*')
+
+        from webob import Request
+        req = Request.blank
+        self.assertEqual(d(req('/foo/man/choo')),
+                         ('One', {'a': 'man'}, ['choo',]))
+        self.assertEqual(d(req('/foo/bar/')),
+                         ('Two', {}, []))
+        self.assertEqual(d(req('/foo/bar/chew/toy')),
+                         ('Two', {}, ['chew', 'toy']))
+
+    def test_bad_wildcard(self):
+        controller = lambda request: 'foo'
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        self.assertRaises(ValueError, d.register, controller, '/foo/*/bar')
