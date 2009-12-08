@@ -71,7 +71,7 @@ class RoutesTests(unittest.TestCase):
         from webob import Request
         req = Request.blank
         self.assertEqual(d(req('/foo/man/')),
-                         ('/foo/man', ''))
+                         ('/foo/man/', ''))
         self.assertEqual(d(req('/foo/man/choo/man')),
                          ('/foo/man', '/choo/man'))
         self.assertEqual(d(req('/foo/man/choo/man/')),
@@ -89,4 +89,16 @@ class RoutesTests(unittest.TestCase):
         from webob import Request
         self.assertEqual(d(Request.blank('/')), 'Hello')
 
+    def test_preserve_trailing_slash(self):
+        controller1 = lambda request: (1, request.url)
+        controller2 = lambda request: (2, request.url)
 
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        d.register(controller1, '/foo/bar/')
+        d.register(controller2, '/foo/*')
+
+        from webob import Request
+        req = Request.blank
+        self.assertEqual(d(req('/foo/bar/')), (1, 'http://localhost/foo/bar/'))
+        self.assertEqual(d(req('/foo/cat/')), (2, 'http://localhost/foo/cat/'))

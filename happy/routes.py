@@ -168,8 +168,11 @@ class RoutesDispatcher(object):
         request.script_name = '/'.join(script + consumed)
 
         path_info = '/'.join([''] + subpath)
-        if path.endswith('/') and path_info:
-            path_info += '/'
+        if path.endswith('/'):
+            if path_info:
+                path_info += '/'
+            else:
+                request.script_name += '/'
         request.path_info = path_info
 
         # Decorate request
