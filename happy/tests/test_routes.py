@@ -70,5 +70,7 @@ class RoutesTests(unittest.TestCase):
 
         from webob import Request
         req = Request.blank
+        self.assertEqual(d(req('/foo/man/')),
+                         ('/foo/man', ''))
         self.assertEqual(d(req('/foo/man/choo/man')),
                          ('/foo/man', '/choo/man'))
