@@ -39,7 +39,7 @@ class TestFileResponse(unittest.TestCase):
     def test_buffer_size(self):
         from happy.static import FileResponse
         fpath = self._mktestfile(10100)
-        response = FileResponse(fpath, 1000)
+        response = FileResponse(fpath, buffer_size=1000)
         bufs = list(response.app_iter)
         self.assertEqual(len(bufs), 11)
         self.assertEqual(len(bufs[0]), 1000)

@@ -10,10 +10,13 @@ class FileResponse(webob.Response):
     """
     Serves a file from the filesystem.
     """
-    def __init__(self, path, buffer_size=DEFAULT_BUFFER_SIZE):
+    def __init__(self, path, request=None, buffer_size=DEFAULT_BUFFER_SIZE):
         super(FileResponse, self).__init__()
         self.path = path
         self.buffer_size = buffer_size
+        if request is None:
+            request = webob.Request.blank('/')
+        self.request = request
 
         self.content_length = os.path.getsize(path)
         self.content_type = mimetypes.guess_type(path, strict=False)[0]
