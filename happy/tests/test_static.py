@@ -45,3 +45,14 @@ class TestFileResponse(unittest.TestCase):
         self.assertEqual(len(bufs[0]), 1000)
         self.assertEqual(len(bufs[-1]), 100)
 
+    def test_modified(self):
+        from happy.static import FileResponse
+        from happy.static import ISO_1123
+        import datetime
+        import os
+        fpath = self._mktestfile()
+        response = FileResponse(fpath)
+        expected = datetime.datetime.utcfromtimestamp(os.path.getmtime(fpath))
+        mtime = datetime.datetime.strptime(
+            response.headers['Last-Modified'], ISO_1123)
+        self.assertEqual(mtime, expected)

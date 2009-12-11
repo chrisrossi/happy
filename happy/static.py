@@ -1,8 +1,10 @@
+from datetime import datetime
 import mimetypes
 import os
 import webob
 
 DEFAULT_BUFFER_SIZE = 1<<16 # 64 kilobytes
+ISO_1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 class FileResponse(webob.Response):
     """
@@ -15,6 +17,8 @@ class FileResponse(webob.Response):
 
         self.content_length = os.path.getsize(path)
         self.content_type = mimetypes.guess_type(path, strict=False)[0]
+        mtime = datetime.utcfromtimestamp(os.path.getmtime(path))
+        self.last_modified = mtime
 
     @property
     def app_iter(self):
