@@ -10,16 +10,15 @@ class FileResponse(webob.Response):
     """
     Serves a file from the filesystem.
     """
-    def __init__(self, path, request=None, buffer_size=DEFAULT_BUFFER_SIZE):
+    def __init__(self, path, request=None,
+                 buffer_size=DEFAULT_BUFFER_SIZE,
+                 expires_timedelta=None):
         super(FileResponse, self).__init__()
-        self.path = path
-        self.buffer_size = buffer_size
         if request is None:
             request = webob.Request.blank('/')
         self.request = request
 
-        mtime = datetime.utcfromtimestamp(os.path.getmtime(path))
-        self.last_modified = mtime
+        self.last_modified = datetime.utcfromtimestamp(os.path.getmtime(path))
 
         # Check 'If-Modified-Since' request header
         # Browser might already have in cache
@@ -29,9 +28,14 @@ class FileResponse(webob.Response):
                 self.status = 304
                 return
 
+        self.date = datetime.utcnow()
         self.app_iter = _file_iter(path, buffer_size)
         self.content_type = mimetypes.guess_type(path, strict=False)[0]
         self.content_length = os.path.getsize(path)
+        if expires_timedelta is not None:
+            self.expires = self.date + expires_timedelta
+        else:
+            self.expires = self.date
 
 def _file_iter(path, buffer_size):
     f = open(path, 'rb')

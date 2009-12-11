@@ -68,3 +68,13 @@ class TestFileResponse(unittest.TestCase):
         response = FileResponse(fpath, request)
         self.assertEqual(response.status_int, 304)
         self.assertEqual(response.body, '')
+
+    def test_expires(self):
+        from happy.static import FileResponse
+        fpath = self._mktestfile()
+        response = FileResponse(fpath)
+        self.assertEqual(response.expires, response.date)
+
+        from datetime import timedelta
+        response = FileResponse(fpath, expires_timedelta=timedelta(days=1))
+        self.assertEqual(response.expires, response.date + timedelta(days=1))
