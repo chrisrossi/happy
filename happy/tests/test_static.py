@@ -2,7 +2,7 @@ import unittest
 
 class TestFileResponse(unittest.TestCase):
     fpath = None
-    def _mktestfile(self, size=80000, ext='.txt'):
+    def _mktestfile(self, size=32, ext='.txt'):
         # Dump some binary data in a temporary file for testing
         import os
         import tempfile
@@ -22,7 +22,7 @@ class TestFileResponse(unittest.TestCase):
 
     def test_it(self):
         from happy.static import FileResponse
-        fpath = self._mktestfile()
+        fpath = self._mktestfile(80000)
         expected = open(fpath, 'rb').read()
         response = FileResponse(fpath)
         body = ''.join(response.app_iter)
@@ -56,3 +56,14 @@ class TestFileResponse(unittest.TestCase):
         mtime = datetime.datetime.strptime(
             response.headers['Last-Modified'], ISO_1123)
         self.assertEqual(mtime, expected)
+
+    def test_not_modified(self):
+        from happy.static import FileResponse
+        import webob
+        fpath = self._mktestfile()
+        request = webob.Request.blank('/')
+        response = FileResponse(fpath, request)
+        last_modified = response.last_modified
+        request.if_modified_since = last_modified
+        response = FileResponse(fpath, request)
+        self.assertEqual(response.status_int, 304)

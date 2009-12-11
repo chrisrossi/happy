@@ -18,19 +18,27 @@ class FileResponse(webob.Response):
             request = webob.Request.blank('/')
         self.request = request
 
-        self.content_length = os.path.getsize(path)
-        self.content_type = mimetypes.guess_type(path, strict=False)[0]
         mtime = datetime.utcfromtimestamp(os.path.getmtime(path))
         self.last_modified = mtime
 
-    @property
-    def app_iter(self):
-        buffer_size = self.buffer_size
-        f = open(self.path, 'rb')
-        try:
+        # Check 'If-Modified-Since' request header
+        # Browser might already have in cache
+        modified_since = request.if_modified_since
+        if modified_since is not None:
+            if self.last_modified <= modified_since:
+                self.status = 304
+                return
+
+        self.app_iter = _file_iter(path, buffer_size)
+        self.content_type = mimetypes.guess_type(path, strict=False)[0]
+        self.content_length = os.path.getsize(path)
+
+def _file_iter(path, buffer_size):
+    f = open(path, 'rb')
+    try:
+        buf = f.read(buffer_size)
+        while buf:
+            yield buf
             buf = f.read(buffer_size)
-            while buf:
-                yield buf
-                buf = f.read(buffer_size)
-        finally:
-            f.close()
+    finally:
+        f.close()
