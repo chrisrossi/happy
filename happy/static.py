@@ -37,6 +37,39 @@ class FileResponse(webob.Response):
         else:
             self.expires = self.date
 
+class DirectoryApplication(object):
+    """
+    Serves files out of a directory on the filesystem.
+    """
+    FileResponse = FileResponse # override point
+
+    def __init__(self, docroot,
+                 buffer_size=DEFAULT_BUFFER_SIZE,
+                 expires_timedelta=None):
+        self.docroot = docroot
+        self.buffer_size = buffer_size
+        self.expires_timedelta = expires_timedelta
+
+    def __call__(self, request):
+        filepath = os.path.join(self.docroot, request.path_info.strip('/'))
+        if os.path.isdir(filepath):
+            return self.index_directory(request)
+
+        elif os.path.isfile(filepath):
+            path, fname = os.path.split(filepath)
+            if fname[0] not in ('.', '_'):  # Hide hidden files
+                return self.FileResponse(
+                    filepath, request,
+                    buffer_size=self.buffer_size,
+                    expires_timedelta=self.expires_timedelta
+                )
+
+    def index_directory(self, request):
+        """
+        Override this method to provide a directory index view, if you're into
+        that kind of thing.
+        """
+
 def _file_iter(path, buffer_size):
     f = open(path, 'rb')
     try:

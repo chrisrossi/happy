@@ -78,3 +78,38 @@ class TestFileResponse(unittest.TestCase):
         from datetime import timedelta
         response = FileResponse(fpath, expires_timedelta=timedelta(days=1))
         self.assertEqual(response.expires, response.date + timedelta(days=1))
+
+class TestDirectoryApplication(unittest.TestCase):
+    def setUp(self):
+        import os
+        import tempfile
+        self.folder = tempfile.mkdtemp()
+        fname = os.path.join(self.folder, 'foo.txt')
+        open(fname, 'w').write('foo\n')
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.folder)
+
+    def test_it(self):
+        from happy.static import DirectoryApplication
+        import webob
+        app = DirectoryApplication(self.folder)
+        request = webob.Request.blank
+
+        self.assertEqual(app(request('/')), None)
+        self.assertEqual(app(request('/foo.txt')).body, 'foo\n')
+
+    def test_override_directory_index_view(self):
+        from happy.static import DirectoryApplication
+        class MyApp(DirectoryApplication):
+            def index_directory(self, request):
+                return 'Howdy'
+
+        import webob
+        request = webob.Request.blank
+        app = MyApp(self.folder)
+
+        self.assertEqual(app(request('/')), 'Howdy')
+        self.assertEqual(app(request('/foo.txt')).body, 'foo\n')
+        self.assertEqual(app(request('/foo')), None)
