@@ -67,3 +67,4 @@ class TestFileResponse(unittest.TestCase):
         request.if_modified_since = last_modified
         response = FileResponse(fpath, request)
         self.assertEqual(response.status_int, 304)
+        self.assertEqual(response.body, '')
