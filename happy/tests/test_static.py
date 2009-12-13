@@ -94,6 +94,7 @@ class TestFileResponse(unittest.TestCase):
         request.headers['Range'] = 'bytes=-200'
         response = FileResponse(fpath, request)
         self.assertEqual(len(response.body), 200)
+        self.assertEqual(ord(response.body[0]), 600 % 0x100)
         self.assertEqual(response.status_int, 206)
 
         expected = open(fpath, 'rb').read()
