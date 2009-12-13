@@ -4,7 +4,6 @@ import os
 import webob
 
 DEFAULT_BUFFER_SIZE = 1<<16 # 64 kilobytes
-ISO_1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 class FileResponse(webob.Response):
     """
