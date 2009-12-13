@@ -79,6 +79,69 @@ class TestFileResponse(unittest.TestCase):
         response = FileResponse(fpath, expires_timedelta=timedelta(days=1))
         self.assertEqual(response.expires, response.date + timedelta(days=1))
 
+    def test_range(self):
+        from happy.static import FileResponse
+        import webob
+        fpath = self._mktestfile(800)
+        request = webob.Request.blank('/')
+        request.headers['Range'] = 'bytes=0-99'
+        response = FileResponse(fpath, request)
+        self.assertEqual(len(response.body), 100)
+        self.assertEqual(ord(response.body[0]), 0)
+        self.assertEqual(response.status, '206 Partial Content')
+
+        request = webob.Request.blank('/')
+        request.headers['Range'] = 'bytes=-200'
+        response = FileResponse(fpath, request)
+        self.assertEqual(len(response.body), 200)
+        self.assertEqual(response.status_int, 206)
+
+        expected = open(fpath, 'rb').read()
+        ranges = [
+            'bytes=0-99',
+            'bytes=100-449',
+            'bytes=450-699',
+            'bytes=-100',
+            ]
+        for i in xrange(len(ranges)):
+            request = webob.Request.blank('/')
+            request.headers['Range'] = ranges[i]
+            ranges[i] = FileResponse(fpath, request).body
+        got = ''.join(ranges)
+
+        self.assertEqual(got, expected)
+
+    def test_multiple_ranges_not_supported(self):
+        from happy.static import FileResponse
+        import webob
+        fpath = self._mktestfile(800)
+        request = webob.Request.blank('/')
+        request.headers['Range'] = 'bytes=0-99,150-199'
+        response = FileResponse(fpath, request)
+        self.assertEqual(len(response.body), 800)
+        self.assertEqual(response.status_int, 200)
+
+    def test_other_range_units_not_supported(self):
+        from happy.static import FileResponse
+        import webob
+        fpath = self._mktestfile(800)
+        request = webob.Request.blank('/')
+        request.headers['Range'] = 'grams=0-99'
+        response = FileResponse(fpath, request)
+        self.assertEqual(len(response.body), 800)
+        self.assertEqual(response.status_int, 200)
+
+    def test_bad_range(self):
+        from happy.static import FileResponse
+        import webob
+        fpath = self._mktestfile(800)
+        request = webob.Request.blank('/')
+        request.headers['Range'] = 'bytes=800-899'
+        response = FileResponse(fpath, request)
+        self.assertEqual(len(response.body), 0)
+        self.assertEqual(response.status,
+                         '416 Requested Range Not Satisfiable')
+
 class TestDirectoryApplication(unittest.TestCase):
     def setUp(self):
         import os

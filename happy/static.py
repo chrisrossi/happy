@@ -28,14 +28,52 @@ class FileResponse(webob.Response):
                 self.status = 304
                 return
 
+        # Provide partial response if requested
+        content_length = os.path.getsize(path)
+        request_range = self._get_range(content_length)
+        if request_range is not None:
+            start, end = request_range
+            if start >= content_length:
+                self.status_int = 416 # Request range not satisfiable
+                return
+
+            self.status_int = 206 # Partial Content
+            self.headers['Content-Range'] = 'bytes %d-%d/%d' % (
+                start, end-1, content_length)
+
         self.date = datetime.utcnow()
-        self.app_iter = _file_iter(path, buffer_size)
+        self.app_iter = _file_iter(path, buffer_size, request_range)
         self.content_type = mimetypes.guess_type(path, strict=False)[0]
-        self.content_length = os.path.getsize(path)
+        self.content_length = content_length
         if expires_timedelta is not None:
             self.expires = self.date + expires_timedelta
         else:
             self.expires = self.date
+
+    def _get_range(self, content_length):
+        # WebOb earlier than 0.9.7 has broken range parser implementation.
+        # The current released version at this time is 0.9.6, so we do this
+        # ourselves.  (It is fixed on trunk, though.)
+        request = self.request
+        range_header = request.headers.get('Range', None)
+        if range_header is None:
+            return None
+
+        # Refuse to parse multiple byte ranges.  They are just plain silly.
+        if ',' in range_header:
+            return None
+
+        unit, range_s = range_header.split('=', 1)
+        if unit != 'bytes':
+            # Other units are not supported
+            return None
+
+        if range_s.startswith('-'):
+            start = content_length - int(range_s[1:])
+            return start, content_length
+
+        start, end = map(int, range_s.split('-'))
+        return start, end + 1
 
 class DirectoryApplication(object):
     """
@@ -70,12 +108,31 @@ class DirectoryApplication(object):
         that kind of thing.
         """
 
-def _file_iter(path, buffer_size):
+def _file_iter(path, buffer_size, content_range=None):
     f = open(path, 'rb')
+    if content_range is not None:
+
+        class ByteReader():
+            def __init__(self, n_bytes):
+                self.bytes_left = n_bytes
+
+            def __call__(self):
+                b = f.read(min(self.bytes_left, buffer_size))
+                self.bytes_left -= len(b)
+                return b
+
+        start, end = content_range
+        f.seek(start)
+        get_bytes = ByteReader(end - start)
+
+    else:
+        def get_bytes():
+            return f.read(buffer_size)
+
     try:
-        buf = f.read(buffer_size)
+        buf = get_bytes()
         while buf:
             yield buf
-            buf = f.read(buffer_size)
+            buf = get_bytes()
     finally:
         f.close()
