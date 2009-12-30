@@ -1,4 +1,5 @@
 import webob
+import webob.exc
 
 def wsgi_app(app, Request=webob.Request):
     """
