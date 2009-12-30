@@ -47,15 +47,13 @@ class TestFileResponse(unittest.TestCase):
 
     def test_modified(self):
         from happy.static import FileResponse
-        from happy.static import ISO_1123
         import datetime
         import os
         fpath = self._mktestfile()
         response = FileResponse(fpath)
         expected = datetime.datetime.utcfromtimestamp(os.path.getmtime(fpath))
-        mtime = datetime.datetime.strptime(
-            response.headers['Last-Modified'], ISO_1123)
-        self.assertEqual(mtime, expected)
+        expected = str(expected) + "+00:00"
+        self.assertEqual(str(response.last_modified), expected)
 
     def test_not_modified(self):
         from happy.static import FileResponse
