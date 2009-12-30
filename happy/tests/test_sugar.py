@@ -21,6 +21,7 @@ class WsgiAppTests(unittest.TestCase):
         from happy.sugar import wsgi_app
         fut = wsgi_app(dummy_app)
 
-        environ = {}
-        start_response = object()
-        self.assertEqual(fut(environ, start_response).status_int, 404)
+        import webob
+        request = webob.Request.blank('/')
+        response = request.get_response(fut)
+        self.assertEqual(response.status_int, 404)
