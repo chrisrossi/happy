@@ -104,7 +104,7 @@ class RoutesDispatcher(object):
     def register(self, target, name, path):
         route = Route(self._wrap_callable(target), path)
         map_node = self._map
-        for element in route.route:
+        for element in route._route:
             if element.variable:
                 key = ':'
             else:
@@ -129,8 +129,8 @@ class RoutesDispatcher(object):
 
         route, consumed, subpath = match
         args = {}
-        for index in route.variable_indices:
-            name = route.route[index].name
+        for index in route._variable_indices:
+            name = route._route[index].name
             args[name] = elements[index]
 
         return route, consumed, subpath, args
@@ -168,6 +168,7 @@ class RoutesDispatcher(object):
         route, consumed, subpath, args = match
 
         # Rewrite script_name and path_name
+        original_request = request
         request = self.Request(request.environ.copy())
         script = request.script_name.split('/')
         request.script_name = '/'.join(script + consumed)
@@ -183,6 +184,8 @@ class RoutesDispatcher(object):
         # Decorate request
         request.subpath = subpath
         request.match_dict = args
+        request.route = route
+        request.request = original_request
 
         # Call target
         return route.target(request, **args)
@@ -218,8 +221,28 @@ class Route(object):
 
         self.target = target
         self.path = path
-        self.route = route
-        self.variable_indices = variable_indices
+        self._route = route
+        self._variable_indices = variable_indices
+
+    def url(self, request, match_dict=None, subpath=None):
+        if match_dict is None:
+            match_dict = {}
+        path_info = []
+        for element in self._route:
+            if element.variable:
+                path_info.append(match_dict[element.name])
+            elif element.wildcard:
+                if subpath is not None:
+                    path_info += subpath
+            else:
+                path_info.append(element.name)
+
+        path_info = '/' + '/'.join(path_info)
+        if self.path.endswith('/') or (
+            self.path.endswith('*') and not subpath):
+            path_info += '/'
+
+        return request.application_url + path_info
 
 class _PathElement(object):
     wildcard = False
