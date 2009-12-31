@@ -118,7 +118,7 @@ class RoutesDispatcher(object):
         map_node.route = route
         self._routes_by_name[name] = route
 
-    def get_route(self, name):
+    def __getitem__(self, name):
         return self._routes_by_name[name]
 
     def match(self, path):
