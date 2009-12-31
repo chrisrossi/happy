@@ -242,7 +242,7 @@ class Route(object):
             self.path.endswith('*') and not subpath):
             path_info += '/'
 
-        return request.application_url + path_info
+        return request.application_url.rstrip('/') + path_info
 
 class _PathElement(object):
     wildcard = False
