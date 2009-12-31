@@ -7,7 +7,7 @@ class TraversalTests(unittest.TestCase):
         a = root['a'] = DummyModel()
         b = root['b'] = DummyModel()
         c = b['c'] = DummyModel()
-        d = a['d'] = object()
+        d = a['d'] = DummyLeaf()
         e = root['e'] = DummyModel()
         g = e['g'] = DummyModel()
         h = e['h'] = DummyModel()
@@ -51,9 +51,30 @@ class TraversalDispatcherTests(unittest.TestCase):
         response = dispatcher(Request.blank('/hello'))
         self.assertEqual(response, 'Hello')
 
+class TestModelURL(unittest.TestCase):
+    def test_it(self):
+        root = DummyModel()
+        b = root['b'] = DummyModel()
+        c = b['c'] = DummyModel()
+
+        import webob
+        req = webob.Request.blank('/')
+
+        from happy.traversal import model_url
+        #self.assertEqual(model_url(req, root), 'http://localhost/')
+        self.assertEqual(model_url(req, c), 'http://localhost/b/c')
+
 class DummyModel(dict):
+    def __setitem__(self, name, value):
+        super(DummyModel, self).__setitem__(name, value)
+        value.__name__ = name
+        value.__parent__ = self
+
     def __eq__(self, other):
         return self is other
+
+class DummyLeaf(object):
+    pass
 
 class DummyModelSubclass(DummyModel):
     pass

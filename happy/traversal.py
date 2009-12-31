@@ -161,3 +161,18 @@ class TraversalDispatcher(object):
         if subpath:
             return self._registry.lookup(context, subpath[0])
         return self._registry.lookup(context)
+
+def model_path(context):
+    """
+    Construct the path to this model starting from the root of the object
+    graph.
+    """
+    def visit(node):
+        if hasattr(node, '__parent__'):
+            for parent in visit(node.__parent__):
+                yield parent
+        yield getattr(node, '__name__', '')
+    return '/'.join(visit(context))
+
+def model_url(request, context):
+    return request.application_url.rstrip('/') + model_path(context)
