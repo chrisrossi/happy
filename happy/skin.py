@@ -47,6 +47,13 @@ class Skin(object):
                     to a temporary file on the filesystem.  (This behavior is
                     actually implemented in `pkg_resources` which is part of
                     `setuptools`.)
+
+                def isdir():
+                    Returns `True` if resource is a directory, otherwise
+                    returns `False`.
+
+                def listdir():
+                    Works just like `os.listdir`.
         """
         for layer in self._layers:
             resource = layer.lookup(fname)
@@ -82,6 +89,12 @@ class _FileSystemResource(object):
     def abspath(self):
         return self.path
 
+    def isdir(self):
+        return os.path.isdir(self.path)
+
+    def listdir(self):
+        return os.listdir(self.path)
+
 class _PackageLayer(object):
     def __init__(self, spec):
         if ':' in spec:
@@ -107,3 +120,44 @@ class _PackageResource(object):
 
     def abspath(self):
         return pkg_resources.resource_filename(self.pkg_name, self.path)
+
+    def isdir(self):
+        return pkg_resources.resource_isdir(self.pkg_name, self.path)
+
+    def listdir(self):
+        return pkg_resources.resource_listdir(self.pkg_name, self.path)
+
+from happy.static import DEFAULT_BUFFER_SIZE
+from happy.static import FileResponse
+
+class SkinApplication(object):
+    """
+    Application that serves static resources from inside a skin.
+    """
+    FileResponse = FileResponse # override point
+
+    def __init__(self, skin,
+                 buffer_size=DEFAULT_BUFFER_SIZE,
+                 expires_timedelta=None):
+        self.skin = skin
+        self.buffer_size = buffer_size
+        self.expires_timedelta = expires_timedelta
+
+    def __call__(self, request):
+        resource = self.skin.lookup(request.path_info.strip('/'))
+        if resource is not None:
+            if resource.isdir():
+                return self.index_directory(request, resource)
+
+            return self.FileResponse(
+                    resource.abspath(), request,
+                    buffer_size=self.buffer_size,
+                    expires_timedelta=self.expires_timedelta
+                )
+
+    def index_directory(self, request, resource):
+        """
+        Override this method to provide a directory index view, if you're into
+        that kind of thing.
+        """
+

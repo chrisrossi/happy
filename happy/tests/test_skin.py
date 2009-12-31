@@ -60,3 +60,43 @@ class SkinTests(unittest.TestCase):
                          "I'm overriding your test.\n")
         self.assertEqual(skin.lookup('fixture/test2.txt').string(),
                          "Test Two.\n")
+
+    def test_package_listdir(self):
+        skin = self._make_one('happy.tests')
+        self.failUnless(skin.lookup('').isdir())
+        self.failUnless(skin.lookup('fixture').isdir())
+        self.assertEqual(skin.lookup('fixture').listdir(), ['test2.txt'])
+
+    def test_filesystem_listdir(self):
+        skin = self._make_one(self.tmpdir)
+        self.failUnless(skin.lookup('').isdir())
+        self.assertEqual(skin.lookup('').listdir(), ['test1.txt'])
+
+class TestSkinApplication(unittest.TestCase):
+    def test_it(self):
+        from happy.skin import Skin
+        from happy.skin import SkinApplication
+        skin = Skin('happy.tests')
+        app = SkinApplication(skin)
+
+        import webob
+        request = webob.Request.blank
+        self.assertEqual(app(request('/')), None)
+        self.assertEqual(app(request('/test1.txt')).body, 'Test One.\n')
+
+    def test_override_directory_index_view(self):
+        from happy.skin import Skin
+        from happy.skin import SkinApplication
+
+        class MyApp(SkinApplication):
+            def index_directory(self, request, resource):
+                return 'Howdy'
+
+        import webob
+        request = webob.Request.blank
+        skin = Skin('happy.tests')
+        app = MyApp(skin)
+
+        self.assertEqual(app(request('/')), 'Howdy')
+        self.assertEqual(app(request('/test1.txt')).body, 'Test One.\n')
+        self.assertEqual(app(request('/foo')), None)
