@@ -55,7 +55,7 @@ class RoutesDispatcher(object):
     An asterisk, `*`, may optionally appear at the end of any route and matches
     zero or more arbitrary path segments::
 
-      dispatcher.register(controller, '/foo/:animal/*')
+      dispatcher.register(controller, 'animal', '/foo/:animal/*')
 
     This will match any path that starts with '/foo' and contains at least one
     more arbitrary path element, which will be assigned to the match variable
@@ -66,8 +66,8 @@ class RoutesDispatcher(object):
     cases, the more specific registration wins.  Consider these two
     registrations::
 
-      dispatcher.register(controller1, '/foo/:animal/*')
-      dispatcher.register(controller2, '/foo/bar/*')
+      dispatcher.register(controller1, 'animal', '/foo/:animal/*')
+      dispatcher.register(controller2, 'foobar', '/foo/bar/*')
 
     In this case, the path `/foo/goose/one` will be dispatched to controller1
     while `/foo/bar/two` will be dispatched to controller2.
@@ -80,7 +80,7 @@ class RoutesDispatcher(object):
     of `script_name` and the `subpath` will become the new `path_info`.  The
     following code illustrates::
 
-      dispatcher.register(controller, '/foo/:animal/*')
+      dispatcher.register(controller, 'animals', '/foo/:animal/*')
 
       # Let's say our dispatcher is at the root of our site (ie, script_name is
       # empty) and is then called with a path_info of /foo/cat/tiger/lily
@@ -99,8 +99,9 @@ class RoutesDispatcher(object):
 
     def __init__(self):
         self._map = _MapNode()
+        self._routes_by_name = {}
 
-    def register(self, target, path):
+    def register(self, target, name, path):
         route = Route(self._wrap_callable(target), path)
         map_node = self._map
         for element in route.route:
@@ -115,6 +116,10 @@ class RoutesDispatcher(object):
             map_node = map_node[key]
 
         map_node.route = route
+        self._routes_by_name[name] = route
+
+    def get_route(self, name):
+        return self._routes_by_name[name]
 
     def match(self, path):
         elements = filter(None, path.split('/'))

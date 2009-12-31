@@ -11,10 +11,10 @@ class RoutesTests(unittest.TestCase):
 
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        d.register(controller1, '/')
-        d.register(controller2, '/foo/:a/bar/:b')
-        d.register(controller2, '/:a/:b')
-        d.register(controller3, '/:a/:foo/:bar/happy')
+        d.register(controller1, 'root', '/')
+        d.register(controller2, 'one', '/foo/:a/bar/:b')
+        d.register(controller2, 'two', '/:a/:b')
+        d.register(controller3, 'three', '/:a/:foo/:bar/happy')
 
         from webob import Request
         req = Request.blank
@@ -37,8 +37,8 @@ class RoutesTests(unittest.TestCase):
 
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        d.register(controller1, '/foo/:a/*')
-        d.register(controller2, '/foo/bar/*')
+        d.register(controller1, 'foo', '/foo/:a/*')
+        d.register(controller2, 'foobar_plus', '/foo/bar/*')
 
         from webob import Request
         req = Request.blank
@@ -49,7 +49,7 @@ class RoutesTests(unittest.TestCase):
         self.assertEqual(d(req('/foo/bar/chew/toy')),
                          ('Two', {}, ['chew', 'toy']))
 
-        d.register(controller3, '/foo/bar/')
+        d.register(controller3, 'foobar', '/foo/bar/')
         self.assertEqual(d(req('/foo/bar/chew/toy')),
                          ('Two', {}, ['chew', 'toy']))
         self.assertEqual(d(req('/foo/bar/')),
@@ -59,14 +59,14 @@ class RoutesTests(unittest.TestCase):
         controller = lambda request: 'foo'
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        self.assertRaises(ValueError, d.register, controller, '/foo/*/bar')
+        self.assertRaises(ValueError, d.register, controller, '', '/foo/*/bar')
 
     def test_request_rewrite(self):
         controller = lambda request: (request.script_name, request.path_info)
 
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        d.register(controller, '/foo/:a/*')
+        d.register(controller, 'a', '/foo/:a/*')
 
         from webob import Request
         req = Request.blank
@@ -84,7 +84,7 @@ class RoutesTests(unittest.TestCase):
 
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        d.register(Controller(), '/')
+        d.register(Controller(), 'root', '/')
 
         from webob import Request
         self.assertEqual(d(Request.blank('/')), 'Hello')
@@ -95,10 +95,18 @@ class RoutesTests(unittest.TestCase):
 
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        d.register(controller1, '/foo/bar/')
-        d.register(controller2, '/foo/*')
+        d.register(controller1, 'foobar', '/foo/bar/')
+        d.register(controller2, 'fooplus', '/foo/*')
 
         from webob import Request
         req = Request.blank
         self.assertEqual(d(req('/foo/bar/')), (1, 'http://localhost/foo/bar/'))
         self.assertEqual(d(req('/foo/cat/')), (2, 'http://localhost/foo/cat/'))
+
+    def test_get_route_by_name(self):
+        controller = lambda x: x
+
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        d.register(controller, 'foo', '/foo/*')
+        self.assertEquals(d.get_route('foo').path, '/foo/*')
