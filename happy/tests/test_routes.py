@@ -65,7 +65,7 @@ class RoutesTests(unittest.TestCase):
         controller = lambda request: (request.script_name, request.path_info)
 
         from happy.routes import RoutesDispatcher
-        d = RoutesDispatcher()
+        d = RoutesDispatcher(rewrite_paths=True)
         d.register(controller, 'a', '/foo/:a/*')
 
         from webob import Request

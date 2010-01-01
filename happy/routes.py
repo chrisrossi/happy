@@ -73,12 +73,15 @@ class RoutesDispatcher(object):
     while `/foo/bar/two` will be dispatched to controller2.
 
     When calling the target controller for a route, the dispatcher will create
-    new copy of the request object and then rewrite the `script_name` and
-    `path_info` attributes such that the target controller is called as though
-    it were a stand alone application (which it very well could be).  The
-    portion of the url path consumed by the route will be appended to the end
-    of `script_name` and the `subpath` will become the new `path_info`.  The
-    following code illustrates::
+    new copy of the request object and then, optionally, rewrite the
+    `script_name` and `path_info` attributes such that the target controller
+    is called as though it were a stand alone application (which it very well
+    could be). The default behavior is to not rewrite `script_name` and
+    `path_info`. To enable rewriting, pass a value of `True` to the
+    `rewrite_paths` parameter of the class constructor. When rewriting is
+    enabled, the portion of the url path consumed by the route will be
+    appended to the end of `script_name` and the `subpath` will become the new
+    `path_info`. The following code illustrates::
 
       dispatcher.register(controller, 'animals', '/foo/:animal/*')
 
@@ -97,9 +100,10 @@ class RoutesDispatcher(object):
     """
     Request = webob.Request # Request factory is overridable
 
-    def __init__(self):
+    def __init__(self, rewrite_paths=False):
         self._map = _MapNode()
         self._routes_by_name = {}
+        self.rewrite_paths = rewrite_paths
 
     def register(self, target, name, path):
         route = Route(self._wrap_callable(target), path)
@@ -167,19 +171,23 @@ class RoutesDispatcher(object):
 
         route, consumed, subpath, args = match
 
-        # Rewrite script_name and path_name
+        # Make new copy of request, so our decorations don't leak outside of
+        # this dispatcher.
         original_request = request
         request = self.Request(request.environ.copy())
-        script = request.script_name.split('/')
-        request.script_name = '/'.join(script + consumed)
 
-        path_info = '/'.join([''] + subpath)
-        if path.endswith('/'):
-            if path_info:
-                path_info += '/'
-            else:
-                request.script_name += '/'
-        request.path_info = path_info
+        # Optionally, rewrite script_name and path_name
+        if self.rewrite_paths:
+            script = request.script_name.split('/')
+            request.script_name = '/'.join(script + consumed)
+
+            path_info = '/'.join([''] + subpath)
+            if path.endswith('/'):
+                if path_info:
+                    path_info += '/'
+                else:
+                    request.script_name += '/'
+            request.path_info = path_info
 
         # Decorate request
         request.subpath = subpath
