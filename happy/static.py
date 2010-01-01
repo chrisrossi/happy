@@ -5,6 +5,10 @@ import webob
 
 DEFAULT_BUFFER_SIZE = 1<<16 # 64 kilobytes
 
+# Work around for infinite recursion bug in Python < 2.7
+if hasattr(mimetypes, 'init'):
+    mimetypes.init()
+
 class FileResponse(webob.Response):
     """
     Serves a file from the filesystem.
