@@ -143,8 +143,9 @@ class RoutesDispatcher(object):
         if not subpath:
             if map_node.route is not None:
                 return map_node.route, consumed, subpath
-            assert '*' in map_node
-            return map_node['*'].route, consumed, subpath
+            if '*' in map_node:
+                return map_node['*'].route, consumed, subpath
+            return None
 
         next_node = None
         element = subpath[0]

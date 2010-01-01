@@ -25,6 +25,15 @@ class RoutesTests(unittest.TestCase):
                          ['Three', 'lily', 'barf', 'pi'])
         self.assertEqual(d(req('/'), '/foo/bar/none'), None)
 
+    def test_no_match(self):
+        controller = lambda x: x
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        d.register(controller, 'foo', '/foo/*')
+
+        from webob import Request
+        self.assertEqual(d(Request.blank('/')), None)
+
     def test_wildcard(self):
         def controller1(request):
             return 'One', request.match_dict, request.subpath
