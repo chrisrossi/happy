@@ -61,8 +61,10 @@ class TestModelURL(unittest.TestCase):
         req = webob.Request.blank('/')
 
         from happy.traversal import model_url
-        #self.assertEqual(model_url(req, root), 'http://localhost/')
-        self.assertEqual(model_url(req, c), 'http://localhost/b/c')
+        self.assertEqual(model_url(req, root), 'http://localhost/')
+        self.assertEqual(model_url(req, c), 'http://localhost/b/c/')
+        self.assertEqual(model_url(req, c, 'foo', 'bar'),
+                         'http://localhost/b/c/foo/bar')
 
 class DummyModel(dict):
     def __setitem__(self, name, value):
