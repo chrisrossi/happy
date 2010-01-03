@@ -102,10 +102,10 @@ class FormLoginMiddleware(object):
         if request.path_info == self.logout_path:
             return self._logout(request, credential)
 
-        request = self.Request(request.environ.copy())
         if credential is not None:
             login = self.credential_broker.get_login(credential)
             if login is not None:
+                request = self.Request(request.environ.copy())
                 request.remote_user = self.principals_broker.get_userid(login)
                 request.authenticated_principals = \
                        self.principals_broker.get_principals(login)
