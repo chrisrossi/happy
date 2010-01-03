@@ -6,7 +6,7 @@ interfaces that are used::
         # An IPasswordBroker interface is responsible for checking passwords
         # of user logins.
 
-        def check_password(login, password):
+        def __call__(login, password):
             # Return boolean indicating whether password is valid for
             # given login.
 
@@ -67,6 +67,8 @@ interfaces that are used::
             # method.
 
 """
+from __future__ import with_statement
+import crypt
 import webob
 from webob.exc import HTTPFound
 
@@ -131,7 +133,7 @@ class FormLoginMiddleware(object):
         if redirect_to is None:
             redirect_to = request.application_url
         if login and password:
-            if self.password_broker.check_password(login, password):
+            if self.password_broker(login, password):
                 credential = self.credential_broker.login(login)
                 response = HTTPFound(location=redirect_to)
                 response.set_cookie(self.cookie_name, credential)
@@ -192,3 +194,30 @@ class FormLoginMiddleware(object):
               </body>
             </html>
         """ % kw
+
+
+class HtpasswdBroker(object):
+    """
+    Performs authentication against users and passwords stored in a standard
+    format htpasswd file.  The file is of the same format produced by Apache's
+    ``htpasswd`` program which cames standard with the Apache web server.
+    Files in this format are also easily produced by simple Python scripts.
+    See: http://pacopablo.com/wiki/pacopablo/blog/htpasswd-with-python
+    """
+    def __init__(self, htpasswd_file):
+        passwords = {}
+        with open(htpasswd_file) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                username, encrypted = line.split(':')
+                passwords[username] = encrypted
+
+        self.passwords = passwords
+
+    def __call__(self, username, password):
+        if not username in self.passwords:
+            return False
+        encrypted = self.passwords[username]
+        return crypt.crypt(password, encrypted) == encrypted

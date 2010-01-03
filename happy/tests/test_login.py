@@ -125,12 +125,50 @@ class TestFormLoginMiddleware(unittest.TestCase):
         self.assertEqual(fut(request).status_int, 403)
 
 
+class HtpasswdAuthenticatorTests(unittest.TestCase):
+    def setUp(self):
+        import os
+        import tempfile
+        fd, self.htpasswd_file = tempfile.mkstemp('.lever.auth.test')
+        os.close(fd)
+
+        with open(self.htpasswd_file, 'w') as f:
+            print >>f, "# temp file for testing"
+
+    def tearDown(self):
+        import os
+        os.remove(self.htpasswd_file)
+
+    def _make_one(self):
+        from happy.login import HtpasswdBroker
+        return HtpasswdBroker(self.htpasswd_file)
+
+    def _add_user_password(self, username, passwd):
+        import crypt
+        with open(self.htpasswd_file, 'a') as f:
+            print >>f, '%s:%s' % (username, crypt.crypt(passwd, 'salt'))
+
+    def test_good_passwd(self):
+        self._add_user_password('chris', 'rossi')
+        authenticator = self._make_one()
+        self.failUnless(authenticator('chris', 'rossi'))
+
+    def test_bad_passwd(self):
+        self._add_user_password('chris', 'rossi')
+        authenticator = self._make_one()
+        self.failIf(authenticator('chris', 'schmidt'))
+
+    def test_bad_user(self):
+        self._add_user_password('chris', 'rossi')
+        authenticator = self._make_one()
+        self.failIf(authenticator('mike', 'schmidt'))
+
 class DummyPasswordBroker(object):
     _passwords = {
         'chris@example.com': '12345678',
     }
 
-    def check_password(self, login, password):
+    def __call__(self, login, password):
         return login in self._passwords and self._passwords[login] == password
 
 class DummyPrincipalsBroker(object):
