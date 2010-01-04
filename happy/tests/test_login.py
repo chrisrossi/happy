@@ -76,7 +76,7 @@ class TestFormLoginMiddleware(unittest.TestCase):
             POST=dict(login='chris', password='12345678')
         )
         body = fut(request).body
-        self.failUnless('Bad username or password' in body, body)
+        self.failUnless('Bad login' in body, body)
 
     def test_login_bad_password(self):
         from webob import Request
@@ -86,7 +86,7 @@ class TestFormLoginMiddleware(unittest.TestCase):
             POST=dict(login='chris@example.com', password='123456789')
         )
         body = fut(request).body
-        self.failUnless('Bad username or password' in body, body)
+        self.failUnless('Bad login' in body, body)
 
     def test_redirect_401(self):
         def app(request):
@@ -125,7 +125,7 @@ class TestFormLoginMiddleware(unittest.TestCase):
         self.assertEqual(fut(request).status_int, 403)
 
 
-class HtpasswdAuthenticatorTests(unittest.TestCase):
+class TestHtpasswdAuthenticator(unittest.TestCase):
     def setUp(self):
         import os
         import tempfile
@@ -143,10 +143,10 @@ class HtpasswdAuthenticatorTests(unittest.TestCase):
         from happy.login import HtpasswdBroker
         return HtpasswdBroker(self.htpasswd_file)
 
-    def _add_user_password(self, username, passwd):
+    def _add_user_password(self, login, passwd):
         import crypt
         with open(self.htpasswd_file, 'a') as f:
-            print >>f, '%s:%s' % (username, crypt.crypt(passwd, 'salt'))
+            print >>f, '%s:%s' % (login, crypt.crypt(passwd, 'salt'))
 
     def test_good_passwd(self):
         self._add_user_password('chris', 'rossi')
@@ -162,6 +162,71 @@ class HtpasswdAuthenticatorTests(unittest.TestCase):
         self._add_user_password('chris', 'rossi')
         authenticator = self._make_one()
         self.failIf(authenticator('mike', 'schmidt'))
+
+
+class TestFlatFilePrincipalsBrokerTests(unittest.TestCase):
+    def setUp(self):
+        import os
+        import tempfile
+        self.fname = tempfile.mktemp('.lever.auth.test')
+
+        with open(self.fname, 'w') as f:
+            print >>f, "# temp file for testing"
+            print >>f, ""
+
+    def tearDown(self):
+        import os
+        os.remove(self.fname)
+
+    def _make_one(self):
+        from happy.login import FlatFilePrincipalsBroker
+        return FlatFilePrincipalsBroker(self.fname)
+
+    def _add_user_principals(self, login, principals):
+        import crypt
+        principals = ', '.join(principals).encode('utf-8')
+        with open(self.fname, 'a') as f:
+            print >>f, '%s: %s' % (login, principals)
+
+    def test_has_principals(self):
+        principals = [
+            u'1234',
+            u'soccer players',
+            u'qualit\xe0',
+        ]
+        self._add_user_principals('fumanchu', principals)
+        provider = self._make_one()
+        self.assertEqual(provider.get_principals('fumanchu'), principals)
+        self.assertEqual(provider.get_userid('fumanchu'), '1234')
+
+class TestRandomUUIDCredentialBroker(unittest.TestCase):
+    def test_in_memory(self):
+        from happy.login import RandomUUIDCredentialBroker
+        broker = RandomUUIDCredentialBroker()
+        credential = broker.login('fumanchu')
+        self.assertEqual(broker.get_login(credential), 'fumanchu')
+        broker.logout(credential)
+        self.assertEqual(broker.get_login(credential), None)
+
+    def test_persistent(self):
+        import os
+        import tempfile
+        tmpdir = tempfile.mkdtemp('_happy_test')
+        db_file = os.path.join(tmpdir, 'credentials.db')
+
+        from happy.login import RandomUUIDCredentialBroker
+        broker = RandomUUIDCredentialBroker(db_file)
+        credential = broker.login('fumanchu')
+        self.assertEqual(broker.get_login(credential), 'fumanchu')
+
+        broker = RandomUUIDCredentialBroker(db_file)
+        self.assertEqual(broker.get_login(credential), 'fumanchu')
+
+        broker.logout(credential)
+        self.assertEqual(broker.get_login(credential), None)
+
+        broker = RandomUUIDCredentialBroker(db_file)
+        self.assertEqual(broker.get_login(credential), None)
 
 class DummyPasswordBroker(object):
     _passwords = {

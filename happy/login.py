@@ -68,8 +68,12 @@ interfaces that are used::
 
 """
 from __future__ import with_statement
+
+import anydbm
 import crypt
+import uuid
 import webob
+
 from webob.exc import HTTPFound
 
 class FormLoginMiddleware(object):
@@ -139,7 +143,7 @@ class FormLoginMiddleware(object):
                 response.set_cookie(self.cookie_name, credential)
                 return response
 
-            status_msg = "Bad username or password."
+            status_msg = "Bad login"
 
         body = self.form_template(
             login=login,
@@ -211,13 +215,68 @@ class HtpasswdBroker(object):
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                username, encrypted = line.split(':')
-                passwords[username] = encrypted
+                login, encrypted = line.split(':')
+                passwords[login] = encrypted
 
         self.passwords = passwords
 
-    def __call__(self, username, password):
-        if not username in self.passwords:
+    def __call__(self, login, password):
+        if not login in self.passwords:
             return False
-        encrypted = self.passwords[username]
+        encrypted = self.passwords[login]
         return crypt.crypt(password, encrypted) == encrypted
+
+class FlatFilePrincipalsBroker(object):
+    """
+    Reference implementation of IPrincipalsBroker that just reads principals
+    stored in a flat file.  File is of format:
+
+      login1: principal1, principal2, etc...
+      login2: etc...
+    """
+    def __init__(self, db_file):
+        mapping = {}
+        with open(db_file) as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                line = unicode(line.strip(), 'utf-8')
+                if not line:
+                    continue
+                login, principals = map(lambda x: x.strip(), line.split(':'))
+                principals = map(lambda x: x.strip(), principals.split(','))
+                mapping[login] = [p for p in principals if p]
+
+        self._principals = mapping
+
+    def get_principals(self, login):
+        return self._principals[login]
+
+    def get_userid(self, login):
+        return self.get_principals(login)[0]
+
+
+class RandomUUIDCredentialBroker(object):
+    """
+    Reference implementation of ICredentialBroker.  Maintains a simple dict
+    of credential to login mappings.  If a filename is provided to the
+    constructor, the mapping will be persisted to the file using the `anydbm`
+    module from the Python standard library.
+    """
+    def __init__(self, db_file=None):
+        if db_file is not None:
+            self._db = anydbm.open(db_file, 'c')
+        else:
+            self._db = {}
+
+    def login(self, login):
+        credential = str(uuid.uuid4())
+        self._db[credential] = login
+        return credential
+
+    def get_login(self, credential):
+        return self._db.get(credential, None)
+
+    def logout(self, credential):
+        if credential in self._db:
+            del self._db[credential]
