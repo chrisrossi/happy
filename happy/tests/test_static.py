@@ -84,17 +84,15 @@ class TestFileResponse(unittest.TestCase):
         request = webob.Request.blank('/')
         request.headers['Range'] = 'bytes=0-99'
         response = FileResponse(fpath, request)
-        body = ''.join(list(response.app_iter))
-        self.assertEqual(len(body), 100)
-        self.assertEqual(ord(body[0]), 0)
+        self.assertEqual(len(response.body), 100)
+        self.assertEqual(ord(response.body[0]), 0)
         self.assertEqual(response.status, '206 Partial Content')
 
         request = webob.Request.blank('/')
         request.headers['Range'] = 'bytes=-200'
         response = FileResponse(fpath, request)
-        body = ''.join(list(response.app_iter))
-        self.assertEqual(len(body), 200)
-        self.assertEqual(ord(body[0]), 600 % 0x100)
+        self.assertEqual(len(response.body), 200)
+        self.assertEqual(ord(response.body[0]), 600 % 0x100)
         self.assertEqual(response.status_int, 206)
 
         expected = open(fpath, 'rb').read()
@@ -107,9 +105,7 @@ class TestFileResponse(unittest.TestCase):
         for i in xrange(len(ranges)):
             request = webob.Request.blank('/')
             request.headers['Range'] = ranges[i]
-            response = FileResponse(fpath, request)
-            body = ''.join(list(response.app_iter))
-            ranges[i] = body
+            ranges[i] = FileResponse(fpath, request).body
         got = ''.join(ranges)
 
         self.assertEqual(got, expected)
