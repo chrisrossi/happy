@@ -43,6 +43,7 @@ class FileResponse(webob.Response):
             self.status_int = 206 # Partial Content
             self.headers['Content-Range'] = 'bytes %d-%d/%d' % (
                 start, end-1, content_length)
+            content_length = end - start
 
         self.date = datetime.utcnow()
         self.app_iter = _file_iter(path, buffer_size, request_range)

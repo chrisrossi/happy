@@ -84,6 +84,7 @@ class TestFileResponse(unittest.TestCase):
         request = webob.Request.blank('/')
         request.headers['Range'] = 'bytes=0-99'
         response = FileResponse(fpath, request)
+        self.assertEqual(response.content_length, 100)
         self.assertEqual(len(response.body), 100)
         self.assertEqual(ord(response.body[0]), 0)
         self.assertEqual(response.status, '206 Partial Content')
