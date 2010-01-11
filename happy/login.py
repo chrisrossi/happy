@@ -117,12 +117,13 @@ class FormLoginMiddleware(object):
                        self.principals_broker.get_principals(login)
 
         response = self.app(request)
-        if response.status_int == 401:
-            if self.redirect_401:
-                return HTTPFound(location=self._login_url(request))
-        elif response.status_int == 403:
-            if self.redirect_403:
-                return HTTPFound(location=self._login_url(request))
+        if response is not None:
+            if response.status_int == 401:
+                if self.redirect_401:
+                    return HTTPFound(location=self._login_url(request))
+            elif response.status_int == 403:
+                if self.redirect_403:
+                    return HTTPFound(location=self._login_url(request))
 
         return response
 
