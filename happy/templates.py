@@ -31,6 +31,7 @@ class Templates(object):
         self.skin = skin
         self.default_factory = default_factory
         self.factories = {}
+        self._cache = {}
 
     def register_factory(self, extension, factory):
         """
@@ -46,12 +47,16 @@ class Templates(object):
           template = templates['templates/homepage.pt']
 
         """
-        resource = self.skin.lookup(fname)
-        if resource is None:
-            raise KeyError(fname)
-        extension = os.path.splitext(fname)[1].lstrip('.')
-        factory = self.factories.get(extension, self.default_factory)
-        return factory(resource.abspath())
+        template = self._cache.get(fname, None)
+        if template is None:
+            resource = self.skin.lookup(fname)
+            if resource is None:
+                raise KeyError(fname)
+            extension = os.path.splitext(fname)[1].lstrip('.')
+            factory = self.factories.get(extension, self.default_factory)
+            template = factory(resource.abspath())
+            self._cache[fname] = template
+        return template
 
     def render(self, fname, **kw):
         """
