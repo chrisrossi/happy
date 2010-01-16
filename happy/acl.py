@@ -35,8 +35,9 @@ def may(principals, permission, context):
             if principal in principals and permission in permissions:
                 return access == Allow
 
-def has_permission(request, permission):
-    context = getattr(request, 'context', None)
+def has_permission(request, permission, context=None):
+    if context is None:
+        context = getattr(request, 'context', None)
     principals = getattr(request, 'authenticated_principals', [])
     effective_principals = [Everyone] + principals
     if request.remote_user:
@@ -48,9 +49,9 @@ def require_permission(permission):
     Decorate a responder callable to require a particular permission.
     """
     def decorator(app):
-        def wrapper(request):
+        def wrapper(request, *args, **kw):
             if has_permission(request, permission):
-                return app(request)
+                return app(request, *args, **kw)
             elif request.remote_user:
                 return HTTPForbidden()
             return HTTPUnauthorized()
