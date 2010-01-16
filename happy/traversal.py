@@ -78,6 +78,15 @@ def traverse(root, path):
 
     return node, path
 
+def find_model(root, path):
+    """
+    Same as `traverse` but raises `KeyError` if entire path is not consumed.
+    """
+    model, subpath = traverse(root, path)
+    if subpath:
+        raise KeyError('%s has no key: %s' % (model, subpath[0]))
+    return model
+
 class TraversalDispatcher(object):
     """
     An instance of ``TraversalDispatcher`` dispatches a request to a controller
