@@ -1,84 +1,66 @@
 """
-Generic notion of registry. A registry is used by other components to track
-registrations of components. Fundamentally a registry is just a way to store
-some object with a set of associations and then look up that object later. A
-graph traversal dipatcher, for example, might use a registry to associate
-controllers with context types, in order to call view code based on the type
-of a content object. Alternatively, an event system might use a registry to
-register handlers for events.
+Generic notion of registry.  Fundamentally a registry is just a way to store
+some object with a set of associations and then look up that object later.
+An example use case might be registering view functions for a web framework
+that are looked up by the type of the object being viewed.  Or an event system
+might use a registry to look up event handlers by type of event.
 
-An object is registered by means of axes, where an axis is, essentially, a key
-for look up. A registry must be initialized with one or more axes. An axis is
-a callable which accepts an object as an argument and returns a key to be used
-as a lookup key for that axis. The simplest axis would be the identity axis,
-which simply returns the object itself::
+This registry, as it is meant to support a wide range of uses cases
+generically, is, by necessity, quite abstract.  Generally users of this module
+will wrap a registry with some sort of domain specific API such that
+registrations can be made using an API that makes clear what is being
+registered and how it is being retrieved.
 
-    identity_axis = lambda obj: obj
+A registry is created with an ordered set of N named axes, where an axis is,
+basically, something by which you can look up an object.  Objects can be
+registered with 0 to N axes.  Object lookups can, likewise, be looked up
+according to any subset of axes in the registry--only objects registered with
+the same set of axes, though, will be found.
 
-The returned value must be hashable, as it is used in a dictionary look up.
-An axis may, optionally, have an attribute, ``specificity``, which, if
-``True``, implies that the return value will, rather than a single value,
-be a list of hashable key values in order of most specific to least
-specific.  The notion of specificity is somewhat artificial and context
-dependent, but allows the creation of axes that can perform lookups based
-on an inheritance chain.  An example is an axis for class MRO (Method
-Resolution Order)::
-
-    class MROAxis(object):
-        specificity = True
-
-        def __call__(self, obj):
-            return type(obj).mro()
-
-Suppose the following classes::
-
-    class C(object):
-       pass
-
-    class D(C):
-        pass
-
-    class E(C):
-        pass
-
-Using an MRO axis, you could register a target for C, which would match
-instances of C, D, or E.  If you then made a more specific registration by
-registering a different target for D, then instances of D would then start
-getting back the more specific target, whereas instances of C or E would still
-get the target registered for C.
-
-Both an identity axis and an MRO axis are available for import from this
-package::
-
-    from happy.registry import identity_axis
-    from happy.registry import mro_axis
-
-A registry is instantiated by passing the axes to use as arguments::
+This registry supports a notion called 'specificity' whereby registrations can
+either be more or less specific, with more specific registrations taking
+precedence on lookup.  To think about this consider a registry with a single
+`TypeAxis`.  A `TypeAxis` allows a lookup to be performed according to some
+object's type.  Let's say we wanted to make a general, catch all, registration
+that we know will apply to any object::
 
     from happy.registry import Registry
+    from happy.registry import TypeAxis
+    registry = Registry(('type', TypeAxis()))
+    registry.register(default_view, type=object)
 
-    registry = Registry(mro_axis, identity_axis)
+If only the above registration is made, any lookup will result in
+`default_view` being returned, since all object types inherit from object::
 
-The ``register`` method is used to add targets to the registry::
+    blog_post = BlogPost()
+    view = registry.lookup(blog_post)  # default_view
 
-    registry.register(target1, C)
-    registry.register(target2, C, 'kittens')
-    registry.register(target3, D)
+We could, of course, make a more specific registration::
 
-The first argument is the target to return from a lookup.  The next arguments
-correspond to the axes used to instantiate the registry.  The ``lookup`` method
-is then used to retrieve objects from the registry:
+    registry.register(blog_post_view, type=BlogPost)
+    view = registry.lookup(blog_post) # Now returns blog_post_view
 
-    foo = C()
-    target1 = registry.lookup(foo)
-    target2 = registry.lookup(foo, 'kittens')
-    bar = D()
-    target3 = registry.lookup(bar)
-    target2 = registry.lookup(foo, 'kittens')
+The registration for type `BlogPost` type is more specific than the
+registration for the `object` type, so lookups on objects of type BlogPost
+will return the blog_post_view, whereas all other objects will return the
+default_view.  Specificity is applied (or not applied) by individual axes.
 
-Lookups only match registrations on the same number of axes as the lookup.
-Hence, the fourth lookup above returns target2 and not target3.
+XXX Todo Explain left to right ordering when searching axes and interaction
+with specificity.
+
+An axis object implements a basic interface comprised of one method::
+
+interface Axis: def matches(obj, keys): ''' For a given object, `obj`, return
+the subset of keys which match this object in this axis, in order from most to
+least specific. ''' The `SimpleAxis` class included in this module implements
+the most basic axis possible--one that effectively acts like a dictionary,
+where the object is the key to the axis. It also provides a means of creating
+axis classes by means of what might be a more intuitive override. The
+`get_keys` simply returns keys used for lookup in the axis for a given
+object and is a convenient override point.
 """
+# XXX Everything written in English here currently blows.  Find a way to
+#     explain this better.
 
 class Registry(object):
     """
@@ -171,7 +153,7 @@ class Registry(object):
 
             aligned[i] = v
 
-        # Trim empty tail nodes, for somewhat faster look ups
+        # Trim empty tail nodes for faster look ups
         while aligned and aligned[-1] is None:
             del aligned[-1]
 
@@ -180,12 +162,16 @@ class Registry(object):
 class _TreeNode(dict):
     target = None
 
-class BaseAxis(object):
+class SimpleAxis(object):
     """
-    Provides a convenient base with abstract methods to be overridden by axis
-    implementations. Provides a good, basic implementation of 'matches' that
-    is factored to include most common cases. More complex algorithms should
-    probably just implement their own class from the ground up.
+    A simple axis where the key into the axis is the same as the object to be
+    matched (aka the identity axis). This axis behaves just like a dictionary.
+    You might use this axis if you are interested in registering something by
+    name, where you're registering an object with the string that is the name
+    and then using the name to look it up again later.
+
+    Subclasses can override the 'get_keys' method for implementing arbitrary
+    axes.
     """
     def matches(self, obj, keys):
         for key in self.get_keys(obj):
@@ -194,24 +180,12 @@ class BaseAxis(object):
 
     def get_keys(self, obj):
         """
-        For a given object, return an iteratable of the keys that can possibly
-        be used to match this object in the axis, from most specific to least
-        specific.
+        Return the keys for the given object that could match this axis, from
+        most specific to least specific.  A convenient override point.
         """
-        raise NotImplementedError("Must be implemented by concrete subclass.")
-
-class SimpleAxis(BaseAxis):
-    """
-    A simple axis where the key into the axis is the same as the object to be
-    matched (aka the identity axis). This axis behaves just like a dictionary.
-    You might use this axis if you are interested in registering something by
-    name, where you're registering an object with the string that is the name
-    and then using the name to look it up again later.
-    """
-    def get_keys(self, obj):
         return [obj,]
 
-class TypeAxis(BaseAxis):
+class TypeAxis(SimpleAxis):
     """
     An axis which matches the class and super classes of an object in method
     resolution order.
