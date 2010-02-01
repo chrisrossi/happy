@@ -2,8 +2,8 @@
 XXX
 """
 from happy.registry import Registry
-from happy.registry import identity_axis
-from happy.registry import mro_axis
+from happy.registry import SimpleAxis
+from happy.registry import TypeAxis
 
 class AdaptationManager(object):
     """
@@ -11,7 +11,10 @@ class AdaptationManager(object):
     """
     def __init__(self, registry=None):
         if registry is None:
-            registry = Registry(mro_axis, identity_axis)
+            registry = Registry(
+                ('from_type', TypeAxis()),
+                ('to_type', SimpleAxis()),
+            )
         self.registry = registry
 
     def register(self, adapter, from_type, to_type):

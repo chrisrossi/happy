@@ -102,12 +102,6 @@ class RegistryTests(unittest.TestCase):
         self.assertRaises(ValueError, registry.lookup, foo=1)
         self.assertRaises(ValueError, registry.register, 1, 'foo', name='foo')
 
-class TestBaseAxis(unittest.TestCase):
-    def test_abstract_method(self):
-        from happy.registry import BaseAxis
-        axis = BaseAxis()
-        self.assertRaises(NotImplementedError, axis.get_keys, None)
-
 class DummyA(object):
     pass
 
