@@ -21,6 +21,25 @@ class TraversalTests(unittest.TestCase):
         self.assertEqual(f(root, '/b/c/d/e'), (c, ['d', 'e']))
         self.assertNotEqual(f(root, '/e/g'), (h, []))
 
+    def test_find_model(self):
+        from happy.traversal import find_model as f
+        root = DummyModel()
+        a = root['a'] = DummyModel()
+        b = root['b'] = DummyModel()
+        c = b['c'] = DummyModel()
+        d = a['d'] = DummyLeaf()
+        e = root['e'] = DummyModel()
+        g = e['g'] = DummyModel()
+        h = e['h'] = DummyModel()
+
+        self.assertEqual(f(root, ''), root)
+        self.assertEqual(f(root, '/'), root)
+        self.assertEqual(f(root, '/a'), a)
+        self.assertEqual(f(root, '/a/'), a)
+        self.assertRaises(KeyError, f, root, '/a/d/f')
+        self.assertEqual(f(root, '/b/c'), c)
+        self.assertRaises(KeyError, f, root, '/b/c/d/e')
+
 class TraversalDispatcherTests(unittest.TestCase):
     def test_default_view(self):
         root = DummyModel()
