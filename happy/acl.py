@@ -35,14 +35,50 @@ def may(principals, permission, context):
             if principal in principals and permission in permissions:
                 return access == Allow
 
-def has_permission(request, permission, context=None):
-    if context is None:
-        context = getattr(request, 'context', None)
+def effective_principals(request):
     principals = getattr(request, 'authenticated_principals', [])
     effective_principals = [Everyone] + principals
     if request.remote_user:
         effective_principals.append(Authenticated)
-    return may(effective_principals, permission, context)
+    return effective_principals
+
+def has_permission(request, permission, context=None):
+    if context is None:
+        context = getattr(request, 'context', None)
+    return may(effective_principals(request), permission, context)
+
+def principals_with_permission(permission, context):
+    # Stolen direct from bfg, comments and all
+    allowed = set()
+
+    for location in reversed(list(_lineage(context))):
+        # NB: we're walking *up* the object graph from the root
+        acl = getattr(location, '__acl__', None)
+        if acl is None:
+            continue
+
+        allowed_here = set()
+        denied_here = set()
+
+        for ace_action, ace_principal, ace_permissions in acl:
+            if not hasattr(ace_permissions, '__iter__'):
+                ace_permissions = [ace_permissions]
+            if ace_action == Allow and permission in ace_permissions:
+                if not ace_principal in denied_here:
+                    allowed_here.add(ace_principal)
+            if ace_action == Deny and permission in ace_permissions:
+                denied_here.add(ace_principal)
+                if ace_principal == Everyone:
+                    # clear the entire allowed set, as we've hit a
+                    # deny of Everyone ala (Deny, Everyone, ALL)
+                    allowed = set()
+                    break
+                elif ace_principal in allowed:
+                    allowed.remove(ace_principal)
+
+        allowed.update(allowed_here)
+
+    return allowed
 
 def require_permission(permission):
     """
@@ -50,6 +86,7 @@ def require_permission(permission):
     """
     def decorator(app):
         def wrapper(request, *args, **kw):
+            import pdb; pdb.set_trace()
             if has_permission(request, permission):
                 return app(request, *args, **kw)
             elif request.remote_user:
