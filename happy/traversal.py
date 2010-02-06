@@ -53,6 +53,7 @@ the ``TraversalDispatcher`` class.
 # XXX Update docs to include move to a ViewRegistry.
 
 from happy.view import ViewRegistry
+import webob
 
 def traverse(root, path):
     """
@@ -146,6 +147,8 @@ class TraversalDispatcher(object):
     There is not a lot of code in this class, so another perfectly valid
     approach is to simply cut and paste the code and customize at will.
     """
+    Request = webob.Request
+
     def __init__(self, root_factory, registry=None):
         self.root_factory = root_factory
         if registry == None:
@@ -157,6 +160,10 @@ class TraversalDispatcher(object):
         context, subpath = traverse(root, request.path_info)
         view = self._lookup_view(request, context, subpath)
         if view is not None:
+            request = self.Request(request.environ.copy())
+            request.context = context
+            request.root = root
+            request.subpath = subpath
             return view(request, context)
 
     def register(self, view, klass=None, name=None, **predicates):

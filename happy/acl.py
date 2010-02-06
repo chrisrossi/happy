@@ -61,8 +61,6 @@ def principals_with_permission(permission, context):
         denied_here = set()
 
         for ace_action, ace_principal, ace_permissions in acl:
-            if not hasattr(ace_permissions, '__iter__'):
-                ace_permissions = [ace_permissions]
             if ace_action == Allow and permission in ace_permissions:
                 if not ace_principal in denied_here:
                     allowed_here.add(ace_principal)
@@ -86,7 +84,6 @@ def require_permission(permission):
     """
     def decorator(app):
         def wrapper(request, *args, **kw):
-            import pdb; pdb.set_trace()
             if has_permission(request, permission):
                 return app(request, *args, **kw)
             elif request.remote_user:

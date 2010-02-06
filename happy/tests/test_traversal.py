@@ -53,7 +53,7 @@ class TraversalDispatcherTests(unittest.TestCase):
         from webob import Request
         request = Request.blank('/')
         dispatcher(request)
-        self.assertEqual(calls[0], (request, root))
+        self.assertEqual(calls[0][1], root)
 
     def test_named_view(self):
         root = DummyModel()
