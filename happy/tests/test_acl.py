@@ -74,6 +74,45 @@ class TestRequirePermission(unittest.TestCase):
         request.context = DummyModel()
         self.assertEqual(app(request).status_int, 401)
 
+class TestPrincipalsWithPermission(unittest.TestCase):
+    def setUp(self):
+        from happy.acl import principals_with_permission
+        self.fut = principals_with_permission
+
+    def test_degenerate_case(self):
+        self.assertEqual(self.fut('view', DummyModel()), set())
+
+    def test_simplest_case(self):
+        from happy.acl import Allow
+        a = DummyModel()
+        a.__acl__ = [(Allow, 'chris', ['view'])]
+        self.assertEqual(self.fut('view', a), set(['chris']))
+
+    def test_next_simplest_case(self):
+        from happy.acl import Allow
+        from happy.acl import Deny
+        a = DummyModel()
+        b = a['b'] = DummyModel()
+        a.__acl__ = [(Allow, 'chris', ['view'])]
+        b.__acl__ = [(Deny, 'chris', ['view']),
+                     (Allow, 'paul', ['view'])]
+        self.assertEqual(self.fut('view', b), set(['paul']))
+
+    def test_deny_everyone(self):
+        from happy.acl import ALL_PERMISSIONS
+        from happy.acl import Allow
+        from happy.acl import Deny
+        from happy.acl import Everyone
+        a = DummyModel()
+        b = a['b'] = DummyModel()
+        c = b['c'] = DummyModel()
+        a.__acl__ = [(Allow, 'chris', ['view'])]
+        b._acl__ = [(Deny, Everyone, ALL_PERMISSIONS)]
+        c.__acl__ = [(Allow, 'tres', ['view']),
+                     (Allow, 'paul', ['view'])]
+        import pdb; pdb.set_trace()
+        self.assertEqual(self.fut('view', c), set(['paul', 'tres']))
+
 class DummyModel(dict):
     def __setitem__(self, name, child):
         super(DummyModel, self).__setitem__(name, child)
