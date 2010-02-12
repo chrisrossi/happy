@@ -107,10 +107,9 @@ class TestPrincipalsWithPermission(unittest.TestCase):
         b = a['b'] = DummyModel()
         c = b['c'] = DummyModel()
         a.__acl__ = [(Allow, 'chris', ['view'])]
-        b._acl__ = [(Deny, Everyone, ALL_PERMISSIONS)]
+        b.__acl__ = [(Deny, Everyone, ALL_PERMISSIONS)]
         c.__acl__ = [(Allow, 'tres', ['view']),
                      (Allow, 'paul', ['view'])]
-        import pdb; pdb.set_trace()
         self.assertEqual(self.fut('view', c), set(['paul', 'tres']))
 
 class DummyModel(dict):
