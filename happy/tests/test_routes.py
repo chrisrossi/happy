@@ -125,15 +125,12 @@ class RoutesTests(unittest.TestCase):
 
         from happy.routes import RoutesDispatcher
         d = RoutesDispatcher()
-        d.register(controller, 'one', '/foo/bar/*')
-        d.register(controller, 'two', '/foo/:bar')
-        d.register(controller, 'three', '/foo/:bar/')
+        one = d.register(controller, 'one', '/foo/bar/*')
+        two = d.register(controller, 'two', '/foo/:bar')
+        three = d.override(controller, 'three', '/foo/:bar/')
 
         import webob
         request = webob.Request.blank('/')
-        one = d['one']
-        two = d['two']
-        three = d['three']
 
         self.assertEqual(one.url(request), 'http://localhost/foo/bar/')
         self.assertEqual(one.url(request, {}, ['bean', 'cheese']),
@@ -142,3 +139,22 @@ class RoutesTests(unittest.TestCase):
                          'http://localhost/foo/booze')
         self.assertEqual(three.url(request, {'bar': 'booze'}),
                          'http://localhost/foo/booze/')
+
+    def test_override(self):
+        def controller(foo):
+            def wrapper(request):
+                return foo
+            return wrapper
+
+        from happy.routes import RoutesDispatcher
+        d = RoutesDispatcher()
+        d.register(controller('one'), 'one', '/foo')
+
+        import webob
+        request = webob.Request.blank('/foo')
+        self.assertEqual(d(request), 'one')
+
+        self.assertRaises(ValueError, d.register,
+                          controller('two'), 'two', '/foo')
+        d.override(controller('two'), 'two', '/foo')
+        self.assertEqual(d(request), 'two')

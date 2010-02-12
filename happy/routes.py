@@ -106,10 +106,10 @@ class RoutesDispatcher(object):
         self.rewrite_paths = rewrite_paths
 
     def register(self, target, name, path):
-        self._register(target, name, path, False)
+        return self._register(target, name, path, False)
 
     def override(self, target, name, path):
-        self._override(target, name, path, True)
+        return self._register(target, name, path, True)
 
     def _register(self, target, name, path, override):
         route = Route(self._wrap_callable(target), path)
@@ -133,6 +133,7 @@ class RoutesDispatcher(object):
 
         tree_node.route = route
         self._routes_by_name[name] = route
+        return route
 
     def __getitem__(self, name):
         return self._routes_by_name[name]
