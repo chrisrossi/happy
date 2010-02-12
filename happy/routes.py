@@ -101,25 +101,25 @@ class RoutesDispatcher(object):
     Request = webob.Request # Request factory is overridable
 
     def __init__(self, rewrite_paths=False):
-        self._map = _MapNode()
+        self._tree = _TreeNode()
         self._routes_by_name = {}
         self.rewrite_paths = rewrite_paths
 
     def register(self, target, name, path):
         route = Route(self._wrap_callable(target), path)
-        map_node = self._map
+        tree_node = self._tree
         for element in route._route:
             if element.variable:
                 key = ':'
             else:
                 key = element.name
 
-            if not map_node.has_key(key):
-                map_node[key] = _MapNode()
+            if not tree_node.has_key(key):
+                tree_node[key] = _TreeNode()
 
-            map_node = map_node[key]
+            tree_node = tree_node[key]
 
-        map_node.route = route
+        tree_node.route = route
         self._routes_by_name[name] = route
 
     def __getitem__(self, name):
@@ -127,7 +127,7 @@ class RoutesDispatcher(object):
 
     def match(self, path):
         elements = filter(None, path.split('/'))
-        match = self._match(self._map, [], elements)
+        match = self._match(self._tree, [], elements)
         if match is None:
             return None
 
@@ -139,22 +139,22 @@ class RoutesDispatcher(object):
 
         return route, consumed, subpath, args
 
-    def _match(self, map_node, consumed, subpath):
+    def _match(self, tree_node, consumed, subpath):
         if not subpath:
-            if map_node.route is not None:
-                return map_node.route, consumed, subpath
-            if '*' in map_node:
-                return map_node['*'].route, consumed, subpath
+            if tree_node.route is not None:
+                return tree_node.route, consumed, subpath
+            if '*' in tree_node:
+                return tree_node['*'].route, consumed, subpath
             return None
 
         next_node = None
         element = subpath[0]
-        next_node = map_node.get(element, None)
+        next_node = tree_node.get(element, None)
         if next_node is None:
-            next_node = map_node.get(':', None)
+            next_node = tree_node.get(':', None)
         if next_node is None:
-            if '*' in map_node:
-                return map_node['*'].route, consumed, subpath
+            if '*' in tree_node:
+                return tree_node['*'].route, consumed, subpath
             return None
         return self._match(next_node, consumed + [element], subpath[1:])
 
@@ -267,5 +267,5 @@ class _PathElement(object):
         else:
             self.name = element
 
-class _MapNode(dict):
+class _TreeNode(dict):
     route = None
