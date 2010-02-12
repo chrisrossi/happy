@@ -106,6 +106,12 @@ class RoutesDispatcher(object):
         self.rewrite_paths = rewrite_paths
 
     def register(self, target, name, path):
+        self._register(target, name, path, False)
+
+    def override(self, target, name, path):
+        self._override(target, name, path, True)
+
+    def _register(self, target, name, path, override):
         route = Route(self._wrap_callable(target), path)
         tree_node = self._tree
         for element in route._route:
@@ -118,6 +124,12 @@ class RoutesDispatcher(object):
                 tree_node[key] = _TreeNode()
 
             tree_node = tree_node[key]
+
+        if not override and tree_node.route is not None:
+            raise ValueError(
+                "A target has already been registered for this route.  "
+                "Use override to replace this route's target."
+            )
 
         tree_node.route = route
         self._routes_by_name[name] = route
