@@ -51,7 +51,9 @@ class TestFileResponse(unittest.TestCase):
         import os
         fpath = self._mktestfile()
         response = FileResponse(fpath)
-        expected = datetime.datetime.utcfromtimestamp(os.path.getmtime(fpath))
+        expected = datetime.datetime.utcfromtimestamp(
+            int(os.path.getmtime(fpath))
+        )
         expected = str(expected) + "+00:00"
         self.assertEqual(str(response.last_modified), expected)
 
