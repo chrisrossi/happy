@@ -1,21 +1,22 @@
-Happy Conventions
-=================
+:term:`Happy` Conventions
+=========================
 
-Happy components use the :term:`WSGI` protocol and are compatible, at a low
-level, with any `WSGI` based framework or application.  Happy uses
-:term:`WebOb` request and response objects to hide the 'bare' :term:`WSGI`
-protocol.  :term:`WebOb` is quickly becoming the de facto standard among
-:term:`WSGI` frameworks and its continued adoption will only facilitate more
-greatly reusability and sharing of component libraries like Happy.
+:term:`Happy` components use the :term:`WSGI` protocol and are compatible, at
+a low level, with any `WSGI` based framework or application. :term:`Happy`
+uses :term:`WebOb` request and response objects to hide the 'bare'
+:term:`WSGI` protocol. :term:`WebOb` is quickly becoming the de facto standard
+among :term:`WSGI` frameworks and its continued adoption will only facilitate
+more greatly reusability and sharing of component libraries like
+:term:`Happy`.
 
 Responders
 ----------
 
-The most used convention in Happy is the :term:`responder protocol`.  In
-essence, the `responder protocol` is little more than the :term:`WSGI` protocol
-recast to use :term:`WebOb` request and response objects.  A :term:`responder`
-is a callable which accects a single :term:`Request` object argument and
-returns a :term:`Response` object:
+The most used convention in :term:`Happy` is the :term:`responder protocol`.
+In essence, the `responder protocol` is little more than the :term:`WSGI`
+protocol recast to use :term:`WebOb` request and response objects. A
+:term:`responder` is a callable which accects a single :term:`Request` object
+argument and returns a :term:`Response` object:
 
 .. code-block:: python
 
@@ -34,7 +35,7 @@ this protocol can be used to encapsulate just about any level of a web
 application, from the most general high level pieces of your application to
 the smallest, most specific.
 
-Using WSGI with Happy Responders
---------------------------------
+Using WSGI with :term:`Happy` Responders
+----------------------------------------
 
-XXX
+xxx
