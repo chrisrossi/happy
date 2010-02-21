@@ -20,7 +20,7 @@ returns a :term:`Response` object:
 .. code-block:: python
 
    def responder(request):
-      return response  # may be None
+       return response  # may be None
 
 A responder may either return a :term:`WebOb` response, or ``None`` if a
 responder chooses not to handle a request.  A return type of ``None`` can
