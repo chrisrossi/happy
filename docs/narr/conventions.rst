@@ -20,12 +20,10 @@ returns a :term:`Response` object:
 .. code-block:: python
 
    def responder(request):
-      if handles(request):
-          return response
-      return None
+      return response  # may be None
 
 A responder may either return a :term:`WebOb` response, or ``None`` if a
-responderchooses not to handle a request.  A return type of ``None`` can
+responder chooses not to handle a request.  A return type of ``None`` can
 indicate to a caller that another responder should be tried or that a
 '404 Not Found' should be returned to the client.
 
