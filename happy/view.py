@@ -23,7 +23,24 @@ from happy.registry import Registry
 from happy.registry import SimpleAxis
 from happy.registry import TypeAxis
 
+class _PredicatesAxis(object):
+    def matches(self, request, keys):
+        keys = list(keys) # copy
+
+        # Sort by number of predicates
+        keys.sort(key=lambda x: len(x), reverse=True)
+
+        # More predicates is more specific
+        # XXX Match order for same number of predicates is undefined.
+        for predicates in keys:
+            if predicates.match(request):
+                yield predicates
+
 class ViewRegistry(Registry):
+    PredicatesAxis = _PredicatesAxis
+    SimpleAxis = SimpleAxis
+    TypeAxis = TypeAxis
+
     """
     A registry which allows registration and lookup of views based on the
     type of the context object, certain aspects of the HTTP request, and/or
@@ -31,9 +48,9 @@ class ViewRegistry(Registry):
     """
     def __init__(self):
         super(ViewRegistry, self).__init__(
-            ('request', _PredicatesAxis()),
-            ('context', TypeAxis()),
-            ('name', SimpleAxis()),
+            ('request', self.PredicatesAxis()),
+            ('context', self.TypeAxis()),
+            ('name', self.SimpleAxis()),
         )
 
     def register(self, view, context_type=None, name=None, **predicates):
@@ -64,20 +81,6 @@ class ViewRegistry(Registry):
         # Presents a domain specific method signature, but otherwise just calls
         # Registry.lookup()
         return super(ViewRegistry, self).lookup(request, context, name)
-
-
-class _PredicatesAxis(object):
-    def matches(self, request, keys):
-        keys = list(keys) # copy
-
-        # Sort by number of predicates
-        keys.sort(key=lambda x: len(x), reverse=True)
-
-        # More predicates is more specific
-        # XXX Match order for same number of predicates is undefined.
-        for predicates in keys:
-            if predicates.match(request):
-                yield predicates
 
 
 class _Predicates(dict):
