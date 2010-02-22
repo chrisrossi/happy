@@ -2,9 +2,6 @@
 XXX
 """
 
-from happy.registry import Registry
-from happy.registry import TypeAxis
-
 class EventManager(object):
     def __init__(self):
         self._registry = {}
