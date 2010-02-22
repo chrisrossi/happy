@@ -87,6 +87,10 @@ class ViewRegistry(Registry):
         # Registry.lookup()
         return super(ViewRegistry, self).lookup(request, context, name)
 
+    def get_registration(self, context_type=None, name=None, **predicates):
+        return super(ViewRegistry, self).lookup(
+            _Predicates(predicates), context_type, name
+        )
 
 class _Predicates(dict):
     known_predicates = set([
