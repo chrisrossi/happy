@@ -43,6 +43,19 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(registry.lookup(context2), target4)
         self.assertEqual(registry.lookup(context2, 'foo'), target3)
 
+    def test_get_registration(self):
+        from happy.registry import Registry
+        from happy.registry import SimpleAxis
+        from happy.registry import TypeAxis
+        registry = Registry(('type', TypeAxis()),
+                            ('name', SimpleAxis()))
+        registry.register('one', object)
+        registry.register('two', DummyA, 'foo')
+        self.assertEqual(registry.get_registration(object), 'one')
+        self.assertEqual(registry.get_registration(DummyA, 'foo'), 'two')
+        self.assertEqual(registry.get_registration(object, 'foo'), None)
+        self.assertEqual(registry.get_registration(DummyA), None)
+
     def test_register_too_many_keys(self):
         from happy.registry import Registry
         from happy.registry import SimpleAxis

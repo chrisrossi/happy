@@ -94,6 +94,15 @@ class Registry(object):
 
         tree_node.target = target
 
+    def get_registration(self, *arg_keys, **kw_keys):
+        tree_node = self._tree
+        for key in self._align_with_axes(arg_keys, kw_keys):
+            if not tree_node.has_key(key):
+                return None
+            tree_node = tree_node[key]
+
+        return tree_node.target
+
     def lookup(self, *arg_objs, **kw_objs):
         objs = self._align_with_axes(arg_objs, kw_objs)
         axes = self._axes
