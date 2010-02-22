@@ -18,6 +18,19 @@ class TestViewRegistry(unittest.TestCase):
         registry.register('foo_view', name='foo')
         self.assertEqual(registry.lookup(request, None, 'foo'), 'foo_view')
 
+    def test_override(self):
+        from happy.view import ViewRegistry
+        from webob import Request
+        request = Request.blank('/')
+        registry = ViewRegistry()
+        registry.register('foo_view', name='foo')
+        self.assertEqual(registry.lookup(request, None, 'foo'), 'foo_view')
+
+        self.assertRaises(ValueError, registry.register,
+                          'foo_view2', name='foo')
+        registry.override('foo_view2', name='foo')
+        self.assertEqual(registry.lookup(request, None, 'foo'), 'foo_view2')
+
     def test_by_type_and_name(self):
         from happy.view import ViewRegistry
         from webob import Request

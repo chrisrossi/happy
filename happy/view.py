@@ -77,6 +77,11 @@ class ViewRegistry(Registry):
             view, _Predicates(predicates), context_type, name
         )
 
+    def override(self, view, context_type=None, name=None, **predicates):
+        super(ViewRegistry, self).override(
+            view, _Predicates(predicates), context_type, name
+        )
+
     def lookup(self, request, context, name=None):
         # Presents a domain specific method signature, but otherwise just calls
         # Registry.lookup()
