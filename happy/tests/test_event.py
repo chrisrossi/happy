@@ -1,8 +1,8 @@
 import unittest
 
-class TestEventManager(unittest.TestCase):
+class TestEvents(unittest.TestCase):
     def make_one(self):
-        from happy.event import EventManager as cut
+        from happy.event import Events as cut
         return cut()
 
     def test_simple(self):
