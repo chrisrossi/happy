@@ -38,4 +38,25 @@ the smallest, most specific.
 Using WSGI with :term:`Happy` Responders
 ----------------------------------------
 
-xxx
+:term:`Happy` responders can be easily transformed into :term:`WSGI`
+applications and vice versa.  The ``sugar`` module contains adapters for
+adapting the :term:`responder protocol` into :term:`WSGI`:
+
+.. code-block:: python
+
+   from happy.sugar import wsgi_app
+
+   app = wsgi_app(responder)
+
+``wsgi_app`` can also be used as a function decorator:
+
+.. code-block:: python
+
+   from happy.sugar import wsgi_app
+
+   @wsgi_app
+   def responder(request):
+       return response
+
+If the responder returns ``None``, ``wsgi_app`` will use ``webob.exc.HTTPNotFound``
+which returns a `404 Not Found`.

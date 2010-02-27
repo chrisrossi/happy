@@ -246,9 +246,8 @@ class Route(object):
         self._route = route
         self._variable_indices = variable_indices
 
-    def url(self, request, match_dict=None, subpath=None):
-        if match_dict is None:
-            match_dict = {}
+    def url(self, request, **match_dict):
+        subpath = match_dict.pop('subpath', None)
         path_info = []
         for element in self._route:
             if element.variable:

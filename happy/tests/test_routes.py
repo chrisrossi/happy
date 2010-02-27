@@ -133,11 +133,11 @@ class RoutesTests(unittest.TestCase):
         request = webob.Request.blank('/')
 
         self.assertEqual(one.url(request), 'http://localhost/foo/bar/')
-        self.assertEqual(one.url(request, {}, ['bean', 'cheese']),
+        self.assertEqual(one.url(request, subpath=['bean', 'cheese']),
                          'http://localhost/foo/bar/bean/cheese')
-        self.assertEqual(two.url(request, {'bar': 'booze'}),
+        self.assertEqual(two.url(request, bar='booze'),
                          'http://localhost/foo/booze')
-        self.assertEqual(three.url(request, {'bar': 'booze'}),
+        self.assertEqual(three.url(request, bar='booze'),
                          'http://localhost/foo/booze/')
 
     def test_override(self):
