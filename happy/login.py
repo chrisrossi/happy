@@ -185,12 +185,12 @@ class FormLoginMiddleware(object):
                 </style>
               </head>
               <body>
-                <form method="POST">
+                <form method="POST" name="login">
                   <input type="hidden" name="redirect_to"
                          value="%(redirect_to)s"/>
                   <input name="login" value="%(login)s"/>
                   <b>login</b><br/>
-                  <input type="password" name="password"/>
+                  <input name="password" type="password"/>
                   <b>password</b><br/>
                   <br/>
                   <input type="submit" value="login"/><br/>

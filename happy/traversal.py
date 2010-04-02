@@ -158,7 +158,13 @@ class TraversalDispatcher(object):
     def __call__(self, request):
         root = self.root_factory(request)
         context, subpath = traverse(root, request.path_info)
-        view = self._lookup_view(request, context, subpath)
+        name = None
+        if subpath:
+            name = subpath.pop(0)
+        view = self._lookup_view(request, context, name)
+        if view is None and name is not None:
+            subpath.insert(0, name)
+            view = self._lookup_view(request, context)
         if view is not None:
             request = self.Request(request.environ.copy())
             request.context = context
@@ -169,10 +175,7 @@ class TraversalDispatcher(object):
     def register(self, view, klass=None, name=None, **predicates):
         self._registry.register(view, klass, name, **predicates)
 
-    def _lookup_view(self, request, context, subpath):
-        name = None
-        if subpath:
-            name = subpath[0]
+    def _lookup_view(self, request, context, name=None):
         return self._registry.lookup(request, context, name)
 
 def model_path(context, *subpath):

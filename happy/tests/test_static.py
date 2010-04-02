@@ -6,19 +6,19 @@ class TestFileResponse(unittest.TestCase):
         # Dump some binary data in a temporary file for testing
         import os
         import tempfile
-        fd, self.fpath = tempfile.mkstemp(ext)
+        fd, self.fspath = tempfile.mkstemp(ext)
         f = os.fdopen(fd, 'wb')
         for i in xrange(size):
             f.write(chr(i%0x100))
         f.close()
 
-        return self.fpath
+        return self.fspath
 
     def tearDown(self):
-        if self.fpath is not None:
+        if self.fspath is not None:
             import os
-            os.remove(self.fpath)
-            self.fpath = None
+            os.remove(self.fspath)
+            self.fspath = None
 
     def test_it(self):
         from happy.static import FileResponse
