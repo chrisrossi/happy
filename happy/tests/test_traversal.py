@@ -70,6 +70,23 @@ class TraversalDispatcherTests(unittest.TestCase):
         response = dispatcher(Request.blank('/hello'))
         self.assertEqual(response, 'Hello')
 
+    def test_default_view_with_subpath(self):
+        root = DummyModel()
+        root_factory = lambda request: root
+        from happy.traversal import TraversalDispatcher
+        dispatcher = TraversalDispatcher(root_factory)
+        calls = []
+        def view(request, context):
+            calls.append((request, context))
+        dispatcher.register(view, DummyModel)
+        from webob import Request
+        request = Request.blank('/foo/bar')
+        dispatcher(request)
+        self.assertEqual(len(calls), 1)
+        request, context = calls[0]
+        self.assertEqual(request.subpath, ['foo', 'bar'])
+        self.assertEqual(context, root)
+
 class TestModelURL(unittest.TestCase):
     def test_it(self):
         root = DummyModel()
